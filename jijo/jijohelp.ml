@@ -43,5 +43,5 @@ let rec str_of_stmt = function
 let str_of_func f =
   f.name ^ "(" ^ (String.concat ", " f.args) ^ ")\n{\n" ^ (String.concat "" (List.map str_of_stmt f.body)) ^ "}\n"
 
-let str_of_program funcs =
-  String.concat "" (List.map str_of_func funcs)
+let str_of_program p =
+  String.concat "" (List.map str_of_func p.funcs)
