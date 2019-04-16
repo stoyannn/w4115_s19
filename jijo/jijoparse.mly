@@ -70,7 +70,6 @@ expr:
   | LBRACK expr_opt RBRACK { Arrlit($2) }
   | ID { Id($1) }
   | ID ASSIGN expr { Assign($1, $3) }
-  | RETURN expr SEMI { Return $2 }
 
   | expr PLUS expr { Binop($1, Add, $3) }
   | expr MINUS expr { Binop($1, Sub, $3) }
