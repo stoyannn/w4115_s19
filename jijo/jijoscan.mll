@@ -5,10 +5,10 @@
   exception SyntaxError of string
 }
 
-let digit = ['0'-'9'] in
-let letter = ['a'-'z' 'A'-'Z'] in
-let whitespace = [' ' '\t' '\011' '\012'] in
-let newline = '\r' | '\n' | "\r\n" in
+let digit = ['0'-'9']
+let letter = ['a'-'z' 'A'-'Z']
+let whitespace = [' ' '\t' '\011' '\012']
+let newline = '\r' | '\n' | "\r\n"
 
 rule token = parse
   | newline    { Lexing.new_line lexbuf; token lexbuf }
@@ -59,11 +59,11 @@ rule token = parse
 
   | "true"                        { BOOLIT(true) }
   | "false"                       { BOOLIT(false) }
-  | (digit)+ (. (digit)+)? as num { NUMLIT(float_of_string num) }
+  | (digit)+ ('.' (digit)+)? as num { NUMLIT(float_of_string num) }
   | '"'                           { token_string (Buffer.create 16) lexbuf }
   | "null"                        { NULLIT }
 
-  | (letter|underscore) (letter|digit|underscore)* as id { ID(id) }
+  | (letter|'_') (letter|digit|'_')* as id { ID(id) }
 
   | eof      { EOF }
   | _ as chr { raise (SyntaxError("Illegal character: " ^ Char.escaped chr)) }
