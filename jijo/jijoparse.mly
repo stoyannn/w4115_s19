@@ -25,6 +25,7 @@
 %type <Jijoast.program> program
 
 %right ASSIGN
+%right IS
 %left OR
 %left AND
 %left EQ NEQ
