@@ -78,8 +78,8 @@ and token_blockcomment = parse
   | _       { token_blockcomment lexbuf }
 
 and token_string str = parse
-  | newline       { Lexing.new_line lexbuf; token_string lexbuf }
-  | '"'           { STRLIT (Buffer.contents buf) }
+  | newline       { Lexing.new_line lexbuf; token_string str lexbuf }
+  | '"'           { STRLIT (Buffer.contents str) }
   | "\\\""        { Buffer.add_char str '"'; token_string str lexbuf }
   | "\\\\"        { Buffer.add_char str '\\'; token_string str lexbuf }
   | "\\b"         { Buffer.add_char str '\b'; token_string str lexbuf }
