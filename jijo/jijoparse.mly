@@ -45,7 +45,7 @@ func_list:
   | func func_list { $1 :: $2 }
 
 func:
-  | ID LPAREN id_opt RPAREN LBRACE stmt_list RBRACE { {$1, $3, $6} }
+  | ID LPAREN id_opt RPAREN LBRACE stmt_list RBRACE { {name = $1; args = $3; body = $6} }
 
 stmt_list:
   | { [] }
@@ -103,8 +103,8 @@ id_opt:
   | id_list { $1 }
 
 id_list:
-  | ID { [Id($1)] }
-  | ID COMMA id_list { Id($1) :: $3 }
+  | ID { [$1] }
+  | ID COMMA id_list { $1 :: $3 }
 
 field:
   | ID COLON expr { ($1, $3) }
