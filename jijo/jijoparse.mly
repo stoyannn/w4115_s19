@@ -64,7 +64,7 @@ expr:
   | BOOLIT { Boolit($1) }
   | NUMLIT { Numlit($1) }
   | STRLIT { Strlit($1) }
-  | NULL   { Nullit }
+  | NULLIT { Nullit }
   | LBRACE field_opt RBRACE { Objlit($2) }
   | LBRACK expr_opt RBRACK { Arrlit($2) }
   | ID { Id($1) }
@@ -83,11 +83,11 @@ expr:
   | expr GEQ expr { Binop($1, Grequal, $3) }
   | expr AND expr { Binop($1, And, $3) }
   | expr OR expr { Binop($1, Or, $3) }
-  | expr IS expr { Binop{$1, Is, $3) }
+  | expr IS expr { Binop($1, Is, $3) }
   | expr DOT expr { Binop($1, Dot, $3) }
   | expr DOTDOT expr { Binop($1, Dotdot, $3) }
 
-  | expr LPAREN expr RPAREN { $2 }
+  | LPAREN expr RPAREN { $2 }
   | ID LPAREN expr_opt RPAREN { Call ($1, $3) }
 
 expr_opt:
