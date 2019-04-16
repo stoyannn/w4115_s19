@@ -1,35 +1,47 @@
-type op = Add | Sub | Mult | Div | Equal | Nequal | Less | Lequal | Grtr | Grequal | And | Or | Is | Dot | Dotdot
+open Jijoast
 
-(* Unused for now *)
-type typ = Bool | Number | String | Null | Object | Array
+let str_of_op = function
+  | Add -> "+"
+  | Sub -> "-"
+  | Mult -> "*"
+  | Div -> "/"
+  | Equal -> "=="
+  | Nequal -> "!="
+  | Less -> "<"
+  | Lequal -> "<="
+  | Grtr -> ">"
+  | Grequal -> ">="
+  | And -> "&&"
+  | Or -> "||"
+  | Is -> "is"
+  | Dot -> "."
+  | Dotdot -> ".."
 
-type expr =
-  | Boolit of bool
-  | Numlit of float
-  | Strlit of string
-  | Nullit
-  | Objlit of (string * expr) list
-  | Arrlit of expr list
-  | Id of string
-  | Binop of expr * op * expr
-  | Assign of string * expr
-  | Call of string * expr list
+let rec str_of_expr = function
+  | Boolit(true) -> "true"
+  | Boolit(false) -> "false"
+  | Numlit(n) -> string_of_float n
+  | Strlit(s) -> "\"" ^ s ^ "\""
+  | Nullit -> "null"
+  | Objlit(fl) -> "{" ^ (String.concat ", " (List.map (fun f -> (fst f) ^ ":" ^ (str_of_expr (snd f))) fl)) ^ "}"
+  | Arrlit(el) -> "[" ^ (String.concat ", " (List.map str_of_expr el)) ^ "]"
+  | Id(s) -> s
+  | Binop(e1, o, e2) -> (str_of_expr e1) ^ " " ^ (str_of_op o) ^ " " ^ (str_of_expr e2)
+  | Assign(s, e) -> s ^ " = " ^ (str_of_expr e)
+  | Call(s, el) -> s ^ "(" ^ (String.concat ", " (List.map str_of_expr el)) ^ ")"
 
-type stmt =
-  | Block of stmt list
-  | Expr of expr
-  | Break
-  | Continue
-  | If of expr * stmt * stmt
-  | While of expr * stmt
-  | Return of expr option
+let rec str_of_stmt = function
+  | Block(sl) -> "{\n" ^ (String.concat "" (List.map str_of_stmt sl)) ^ "}\n"
+  | Expr(e) -> (str_of_expr e) ^ ";\n"
+  | Break -> "break;\n"
+  | Continue -> "continue;\n"
+  | If(e, s1, s2) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s1) ^ "else\n" ^ (str_of_stmt s2)
+  | While(e, s) -> "while (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
+  | Return(Some e) -> "return " ^ (str_of_expr e) ^ ";\n"
+  | Return(None) -> "return;\n"
 
-type func = {
-  name: string;
-  args: string list;
-  body: stmt list;
-}
+let str_of_func f =
+  f.name ^ "(" ^ (String.concat ", " f.args) ^ ")\n{\n" ^ (String.concat "" (List.map str_of_stmt f.body)) ^ "}\n"
 
-type program = {
-  funcs: func list;
-}
+let str_of_program p =
+  String.concat "" (List.map str_of_func p.funcs)
