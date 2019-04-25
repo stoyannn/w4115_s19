@@ -70,46 +70,61 @@ struct _value _binop_div(struct _value op1, struct _value op2) {
 }
 
 struct _value _binop_equal(struct _value op1, struct _value op2) {
+  if (op1.type != op2.type) {
+    return (struct _value) {TYP_BOOLEAN, 0.0};
+  }
+  if (op1.type == TYP_VOID || op1.type == TYP_NULL) {
+    return (struct _value) {TYP_BOOLEAN, op1.type == op2.type};
+  }
   return (struct _value) {TYP_BOOLEAN, op1.type == op2.type && op1.value == op2.value};
 }
 
 struct _value _binop_nequal(struct _value op1, struct _value op2) {
+  if (op1.type != op2.type) {
+    return (struct _value) {TYP_BOOLEAN, 0.0};
+  } else if (op1.type == TYP_VOID || op1.type == TYP_NULL) {
+    return (struct _value) {TYP_BOOLEAN, 1.0};
+  }
   return (struct _value) {TYP_BOOLEAN, op1.type != op2.type || op1.value != op2.value};
 }
 
 struct _value _binop_less(struct _value op1, struct _value op2) {
   _binop_typecheck("<", TYP_NUMBER, &op1, &op2);
-  return (struct _value) {op1.type, op1.value < op2.value};
+  return (struct _value) {TYP_BOOLEAN, op1.value < op2.value};
 }
 
 struct _value _binop_lequal(struct _value op1, struct _value op2) {
   _binop_typecheck("<=", TYP_NUMBER, &op1, &op2);
-  return (struct _value) {op1.type, op1.value <= op2.value};
+  return (struct _value) {TYP_BOOLEAN, op1.value <= op2.value};
 }
 
 struct _value _binop_grtr(struct _value op1, struct _value op2) {
   _binop_typecheck(">", TYP_NUMBER, &op1, &op2);
-  return (struct _value) {op1.type, op1.value <= op2.value};
+  return (struct _value) {TYP_BOOLEAN, op1.value <= op2.value};
 }
 
 struct _value _binop_grequal(struct _value op1, struct _value op2) {
   _binop_typecheck(">=", TYP_NUMBER, &op1, &op2);
-  return (struct _value) {op1.type, op1.value <= op2.value};
+  return (struct _value) {TYP_BOOLEAN, op1.value <= op2.value};
 }
 
 struct _value _binop_and(struct _value op1, struct _value op2) {
   _binop_typecheck("&&", TYP_BOOLEAN, &op1, &op2);
-  return (struct _value) {op1.type, op1.value && op2.value};
+  return (struct _value) {TYP_BOOLEAN, op1.value && op2.value};
 }
 
 struct _value _binop_or(struct _value op1, struct _value op2) {
   _binop_typecheck("||", TYP_BOOLEAN, &op1, &op2);
-  return (struct _value) {op1.type, op1.value || op2.value};
+  return (struct _value) {TYP_BOOLEAN, op1.value || op2.value};
+}
+
+struct _value _binop_is(struct _value op1, struct _value op2) {
+  return (struct _value) {TYP_BOOLEAN, op1.type == op2.type};
 }
 
 int main(int argc, char *argv[]) {
   struct _value val;
-  _binop_minus((struct _value) {TYP_NUMBER, 5.0}, (struct _value) {TYP_VOID, 3.0});
+  _binop_minus((struct _value) {TYP_BOOLEAN, 5.0}, (struct _value) {TYP_VOID, 3.0});
   return 0;
 }
 
