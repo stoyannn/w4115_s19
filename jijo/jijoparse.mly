@@ -34,6 +34,8 @@
 %left MULT DIV
 %left DOT
 %left DOTDOT
+%left LBRACK
+%nonassoc UMINUS
 
 %%
 
@@ -52,41 +54,42 @@ stmt_list:
   | stmt stmt_list { $1 :: $2 }
 
 /*
-NOTE for stmt rule below:
-1) shift/reduce conflict for:
-    a) IF LPAREN expr RPAREN stmt
-    b) IF LPAREN expr RPAREN stmt ELSE stmt
-  Default YACC resolution to prefer shift will match ELSE w/ closest IF
-2) reduce/reduce conflict for:
-    a) LBRACE stmt_list RBRACE
-    b) expr SEMI (where expr can be LBRACE field_opt RBRACE)
-  Default YACC resolution to reduce first rule will use curly braces as stmt_list delimiter
-*/
+ * NOTE for stmt rule below:
+ * 1) shift/reduce conflict for:
+ *     a) IF LPAREN expr RPAREN stmt
+ *     b) IF LPAREN expr RPAREN stmt ELSE stmt
+ *   Default YACC resolution to prefer shift will match ELSE w/ closest IF
+ * 2) reduce/reduce conflict for:
+ *     a) LBRACE stmt_list RBRACE
+ *     b) expr SEMI (where expr can be LBRACE field_opt RBRACE)
+ *   Default YACC resolution to reduce first rule will use curly braces as stmt_list delimiter
+ */
 stmt:
   | LBRACE stmt_list RBRACE { Block $2 }
   | BREAK SEMI { Break }
   | CONTINUE SEMI { Continue }
-  | IF LPAREN expr RPAREN stmt { If ($3, $5) }
-  | IF LPAREN expr RPAREN stmt ELSE stmt { IfElse ($3, $5, $7) }
-  | WHILE LPAREN expr RPAREN stmt { While ($3, $5) }
-  | RETURN expr SEMI { Return (Some $2) }
+  | IF LPAREN expr RPAREN stmt { If($3, $5) }
+  | IF LPAREN expr RPAREN stmt ELSE stmt { IfElse($3, $5, $7) }
+  | WHILE LPAREN expr RPAREN stmt { While($3, $5) }
+  | RETURN expr SEMI { Return(Some $2) }
   | RETURN SEMI { Return None }
   | expr SEMI { Expr $1 }
 
 expr:
   | NULLIT { Nullit }
-  | BOOLIT { Boolit($1) }
-  | NUMLIT { Numlit($1) }
-  | STRLIT { Strlit($1) }
-  | LBRACE field_opt RBRACE { Objlit($2) }
-  | LBRACK expr_opt RBRACK { Arrlit($2) }
-  | ID { Id($1) }
+  | BOOLIT { Boolit $1 }
+  | NUMLIT { Numlit $1 }
+  | STRLIT { Strlit $1 }
+  | LBRACE field_opt RBRACE { Objlit $2 }
+  | LBRACK expr_opt RBRACK { Arrlit $2 }
+  | ID { Id $1 }
   | ID ASSIGN expr { Assign($1, $3) }
 
   | expr PLUS expr { Binop($1, Add, $3) }
   | expr MINUS expr { Binop($1, Sub, $3) }
   | expr MULT expr { Binop($1, Mult, $3) }
   | expr DIV expr { Binop($1, Div, $3) }
+  | MINUS expr %prec UMINUS { Unop($2, Neg) }
   | expr EQ expr { Binop($1, Equal, $3) }
   | expr NEQ expr { Binop($1, Nequal, $3) }
   | expr LT expr { Binop($1, Less, $3) }
@@ -96,11 +99,13 @@ expr:
   | expr AND expr { Binop($1, And, $3) }
   | expr OR expr { Binop($1, Or, $3) }
   | expr IS expr { Binop($1, Is, $3) }
+  | expr LBRACK expr RBRACK { Binop($1, Ind, $3) }
+  | expr LBRACK QUEST RBRACK { Unop($1, Len) }
   | expr DOT expr { Binop($1, Dot, $3) }
   | expr DOTDOT expr { Binop($1, Dotdot, $3) }
 
   | LPAREN expr RPAREN { $2 }
-  | ID LPAREN expr_opt RPAREN { Call ($1, $3) }
+  | ID LPAREN expr_opt RPAREN { Call($1, $3) }
 
 expr_opt:
   | { [] }

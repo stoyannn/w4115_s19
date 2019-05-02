@@ -1,9 +1,11 @@
-type op = Add | Sub | Mult | Div | Equal | Nequal | Less | Lequal | Grtr | Grequal | And | Or | Is | Dot | Dotdot
-
-type typ = Void | Null | Bool | Number | String | Object | Array
+type op =
+  | Add | Sub | Mult | Div | Neg
+  | Equal | Nequal | Less | Lequal | Grtr | Grequal
+  | And | Or | Is
+  | Ind | Len
+  | Dot | Dotdot
 
 type expr =
-  | Voilit
   | Nullit
   | Boolit of bool
   | Numlit of float
@@ -11,6 +13,7 @@ type expr =
   | Objlit of (string * expr) list
   | Arrlit of expr list
   | Id of string
+  | Unop of expr * op
   | Binop of expr * op * expr
   | Assign of string * expr
   | Call of string * expr list
@@ -34,3 +37,4 @@ type func = {
 type program = {
   funcs: func list;
 }
+

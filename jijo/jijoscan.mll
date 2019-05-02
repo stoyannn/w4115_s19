@@ -57,11 +57,11 @@ rule token = parse
   | "return"   { RETURN }
   | "while"    { WHILE }
 
-  | "null"                        { NULLIT }
-  | "true"                        { BOOLIT(true) }
-  | "false"                       { BOOLIT(false) }
+  | "null"                          { NULLIT }
+  | "true"                          { BOOLIT(true) }
+  | "false"                         { BOOLIT(false) }
   | (digit)+ ('.' (digit)+)? as num { NUMLIT(float_of_string num) }
-  | '"'                           { token_string (Buffer.create 16) lexbuf }
+  | '"'                             { token_string (Buffer.create 16) lexbuf }
 
   | (letter|'_') (letter|digit|'_')* as id { ID(id) }
 
