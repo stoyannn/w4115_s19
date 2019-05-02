@@ -1,13 +1,13 @@
 type op = Add | Sub | Mult | Div | Equal | Nequal | Less | Lequal | Grtr | Grequal | And | Or | Is | Dot | Dotdot
 
-(* Unused for now *)
-type typ = Bool | Number | String | Null | Object | Array
+type typ = Void | Null | Bool | Number | String | Object | Array
 
 type expr =
+  | Voilit
+  | Nullit
   | Boolit of bool
   | Numlit of float
   | Strlit of string
-  | Nullit
   | Objlit of (string * expr) list
   | Arrlit of expr list
   | Id of string
@@ -20,7 +20,8 @@ type stmt =
   | Expr of expr
   | Break
   | Continue
-  | If of expr * stmt * stmt
+  | If of expr * stmt
+  | IfElse of expr * stmt * stmt
   | While of expr * stmt
   | Return of expr option
 

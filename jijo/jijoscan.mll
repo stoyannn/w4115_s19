@@ -57,11 +57,11 @@ rule token = parse
   | "return"   { RETURN }
   | "while"    { WHILE }
 
+  | "null"                        { NULLIT }
   | "true"                        { BOOLIT(true) }
   | "false"                       { BOOLIT(false) }
   | (digit)+ ('.' (digit)+)? as num { NUMLIT(float_of_string num) }
   | '"'                           { token_string (Buffer.create 16) lexbuf }
-  | "null"                        { NULLIT }
 
   | (letter|'_') (letter|digit|'_')* as id { ID(id) }
 
@@ -89,3 +89,4 @@ and token_string str = parse
   | [^ '"' '\\']+ { Buffer.add_string str (Lexing.lexeme lexbuf); token_string str lexbuf }
   | eof           { raise (SyntaxError ("String literal not terminated")) }
   | _ as chr      { raise (SyntaxError ("Illegal character " ^ Char.escaped chr)) }
+

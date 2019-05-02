@@ -51,21 +51,33 @@ stmt_list:
   | { [] }
   | stmt stmt_list { $1 :: $2 }
 
+/*
+NOTE for stmt rule below:
+1) shift/reduce conflict for:
+    a) IF LPAREN expr RPAREN stmt
+    b) IF LPAREN expr RPAREN stmt ELSE stmt
+  Default YACC resolution to prefer shift will match ELSE w/ closest IF
+2) reduce/reduce conflict for:
+    a) LBRACE stmt_list RBRACE
+    b) expr SEMI (where expr can be LBRACE field_opt RBRACE)
+  Default YACC resolution to reduce first rule will use curly braces as stmt_list delimiter
+*/
 stmt:
-  | expr SEMI { Expr $1 }
   | LBRACE stmt_list RBRACE { Block $2 }
   | BREAK SEMI { Break }
   | CONTINUE SEMI { Continue }
-  | IF LPAREN expr RPAREN stmt ELSE stmt { If ($3, $5, $7) }
+  | IF LPAREN expr RPAREN stmt { If ($3, $5) }
+  | IF LPAREN expr RPAREN stmt ELSE stmt { IfElse ($3, $5, $7) }
   | WHILE LPAREN expr RPAREN stmt { While ($3, $5) }
   | RETURN expr SEMI { Return (Some $2) }
   | RETURN SEMI { Return None }
+  | expr SEMI { Expr $1 }
 
 expr:
+  | NULLIT { Nullit }
   | BOOLIT { Boolit($1) }
   | NUMLIT { Numlit($1) }
   | STRLIT { Strlit($1) }
-  | NULLIT { Nullit }
   | LBRACE field_opt RBRACE { Objlit($2) }
   | LBRACK expr_opt RBRACK { Arrlit($2) }
   | ID { Id($1) }

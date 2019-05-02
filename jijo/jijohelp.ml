@@ -18,11 +18,12 @@ let str_of_op = function
   | Dotdot -> ".."
 
 let rec str_of_expr = function
+  | Voilit -> ""
+  | Nullit -> "null"
   | Boolit(true) -> "true"
   | Boolit(false) -> "false"
   | Numlit(n) -> string_of_float n
   | Strlit(s) -> "\"" ^ s ^ "\""
-  | Nullit -> "null"
   | Objlit(fl) -> "{" ^ (String.concat ", " (List.map (fun f -> (fst f) ^ ":" ^ (str_of_expr (snd f))) fl)) ^ "}"
   | Arrlit(el) -> "[" ^ (String.concat ", " (List.map str_of_expr el)) ^ "]"
   | Id(s) -> s
@@ -35,7 +36,8 @@ let rec str_of_stmt = function
   | Expr(e) -> (str_of_expr e) ^ ";\n"
   | Break -> "break;\n"
   | Continue -> "continue;\n"
-  | If(e, s1, s2) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s1) ^ "else\n" ^ (str_of_stmt s2)
+  | If(e, s) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
+  | IfElse(e, s1, s2) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s1) ^ "else\n" ^ (str_of_stmt s2)
   | While(e, s) -> "while (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
   | Return(Some e) -> "return " ^ (str_of_expr e) ^ ";\n"
   | Return(None) -> "return;\n"
