@@ -3,7 +3,7 @@ open Jijoast
 type typ =
   | Void | Null | Bool | Number | String | Object | Array
 
-type sexpr = typ * sx
+type sexpr = typ option * sx
 and sx =
   | SNullit
   | SBoolit of bool
