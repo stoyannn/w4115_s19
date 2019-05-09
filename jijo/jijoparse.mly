@@ -5,6 +5,7 @@
 %token SEMI COLON COMMA QUEST EXCL
 %token LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK
 %token PLUS MINUS MULT DIV
+%token CONCAT
 %token ASSIGN
 %token EQ NEQ LT LEQ GT GEQ
 %token AND OR
@@ -12,10 +13,10 @@
 
 %token BREAK CONTINUE ELSE IF IS RETURN WHILE
 
+%token NULLIT
 %token <bool> BOOLIT
 %token <float> NUMLIT
 %token <string> STRLIT
-%token NULLIT
 
 %token <string> ID
 
@@ -30,6 +31,7 @@
 %left AND
 %left EQ NEQ
 %left LT LEQ GT GEQ
+%left CONCAT
 %left PLUS MINUS
 %left MULT DIV
 %left DOT
@@ -90,6 +92,7 @@ expr:
   | expr MINUS expr { Binop($1, Sub, $3) }
   | expr MULT expr { Binop($1, Mult, $3) }
   | expr DIV expr { Binop($1, Div, $3) }
+  | expr CONCAT expr { Binop($1, Concat, $3) }
   | expr EQ expr { Binop($1, Equal, $3) }
   | expr NEQ expr { Binop($1, Nequal, $3) }
   | expr LT expr { Binop($1, Less, $3) }
@@ -110,6 +113,9 @@ expr:
   | LPAREN expr RPAREN { $2 }
   | ID LPAREN expr_opt RPAREN { Call($1, $3) }
 
+field:
+  | ID COLON expr { ($1, $3) }
+
 expr_opt:
   | { [] }
   | expr_list { $1 }
@@ -126,9 +132,6 @@ id_list:
   | ID { [$1] }
   | ID COMMA id_list { $1 :: $3 }
 
-field:
-  | ID COLON expr { ($1, $3) }
-
 field_opt:
   | { [] }
   | field_list { $1 }
@@ -136,3 +139,4 @@ field_opt:
 field_list:
   | field { [$1] }
   | field COMMA field_list { $1 :: $3 }
+

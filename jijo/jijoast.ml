@@ -1,5 +1,6 @@
 type bop =
   | Add | Sub | Mult | Div
+  | Concat
   | Equal | Nequal | Less | Lequal | Grtr | Grequal
   | And | Or | Is
   | Ind

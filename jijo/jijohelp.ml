@@ -10,6 +10,7 @@ let str_of_bop = function
   | Add -> "+"
   | Sub -> "-"
   | Mult -> "*"
+  | Concat -> "&"
   | Div -> "/"
   | Equal -> "=="
   | Nequal -> "!="

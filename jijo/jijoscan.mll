@@ -35,6 +35,8 @@ rule token = parse
   | '*' { MULT }
   | '/' { DIV }
 
+  | '&' { CONCAT }
+
   | '=' { ASSIGN }
 
   | "==" { EQ }
