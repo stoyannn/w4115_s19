@@ -1,12 +1,16 @@
 open Jijoast
 open Jijosast
 
-let str_of_op = function
+let str_of_uop = function
+  | Neg -> "-"
+  | Not -> "!"
+  | Len -> "[?]"
+
+let str_of_bop = function
   | Add -> "+"
   | Sub -> "-"
   | Mult -> "*"
   | Div -> "/"
-  | Neg -> "-"
   | Equal -> "=="
   | Nequal -> "!="
   | Less -> "<"
@@ -17,7 +21,6 @@ let str_of_op = function
   | Or -> "||"
   | Is -> "is"
   | Ind -> ""
-  | Len -> "[?]"
   | Dot -> "."
   | Dotdot -> ".."
 
@@ -30,10 +33,10 @@ let rec str_of_expr = function
   | Objlit(fl) -> "<obj> {" ^ (String.concat ", " (List.map (fun f -> (fst f) ^ ":" ^ (str_of_expr (snd f))) fl)) ^ "}"
   | Arrlit(el) -> "<arr> [" ^ (String.concat ", " (List.map str_of_expr el)) ^ "]"
   | Id(s) -> s
-  | Unop(e, o) when o = Len -> (str_of_expr e) ^ " " ^ (str_of_op o)
-  | Unop(e, o) -> (str_of_op o) ^ " " ^ (str_of_expr e)
+  | Unop(e, o) when o = Len -> (str_of_expr e) ^ " " ^ (str_of_uop o)
+  | Unop(e, o) -> (str_of_uop o) ^ " " ^ (str_of_expr e)
   | Binop(e1, o, e2) when o = Ind -> (str_of_expr e1) ^ " [" ^ (str_of_expr e2) ^ "]"
-  | Binop(e1, o, e2) -> (str_of_expr e1) ^ " " ^ (str_of_op o) ^ " " ^ (str_of_expr e2)
+  | Binop(e1, o, e2) -> (str_of_expr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_expr e2)
   | Assign(s, e) -> s ^ " = " ^ (str_of_expr e)
   | Call(s, el) -> s ^ "(" ^ (String.concat ", " (List.map str_of_expr el)) ^ ")"
 
@@ -46,10 +49,10 @@ let rec str_of_sexpr = function
   | (_, SObjlit(fl)) -> "<obj> {" ^ (String.concat ", " (List.map (fun f -> (fst f) ^ ":" ^ (str_of_sexpr (snd f))) fl)) ^ "}"
   | (_, SArrlit(el)) -> "<arr> [" ^ (String.concat ", " (List.map str_of_sexpr el)) ^ "]"
   | (_, SId(s)) -> s
-  | (_, SUnop(e, o)) when o = Len -> (str_of_sexpr e) ^ " " ^ (str_of_op o)
-  | (_, SUnop(e, o)) -> (str_of_op o) ^ " " ^ (str_of_sexpr e)
+  | (_, SUnop(e, o)) when o = Len -> (str_of_sexpr e) ^ " " ^ (str_of_uop o)
+  | (_, SUnop(e, o)) -> (str_of_uop o) ^ " " ^ (str_of_sexpr e)
   | (_, SBinop(e1, o, e2)) when o = Ind -> (str_of_sexpr e1) ^ " [" ^ (str_of_sexpr e2) ^ "]"
-  | (_, SBinop(e1, o, e2)) -> (str_of_sexpr e1) ^ " " ^ (str_of_op o) ^ " " ^ (str_of_sexpr e2)
+  | (_, SBinop(e1, o, e2)) -> (str_of_sexpr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_sexpr e2)
   | (_, SAssign(s, e)) -> s ^ " = " ^ (str_of_sexpr e)
   | (_, SCall(s, el)) -> s ^ "(" ^ (String.concat ", " (List.map str_of_sexpr el)) ^ ")"
 

@@ -21,6 +21,7 @@ rule token = parse
   | ':' { COLON }
   | ',' { COMMA }
   | '?' { QUEST }
+  | '!' { EXCL }
 
   | '(' { LPAREN }
   | ')' { RPAREN }

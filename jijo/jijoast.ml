@@ -1,9 +1,12 @@
-type op =
-  | Add | Sub | Mult | Div | Neg
+type bop =
+  | Add | Sub | Mult | Div
   | Equal | Nequal | Less | Lequal | Grtr | Grequal
   | And | Or | Is
-  | Ind | Len
+  | Ind
   | Dot | Dotdot
+
+type uop =
+  | Neg | Not | Len
 
 type expr =
   | Nullit
@@ -13,8 +16,8 @@ type expr =
   | Objlit of (string * expr) list
   | Arrlit of expr list
   | Id of string
-  | Unop of expr * op
-  | Binop of expr * op * expr
+  | Unop of expr * uop
+  | Binop of expr * bop * expr
   | Assign of string * expr
   | Call of string * expr list
 

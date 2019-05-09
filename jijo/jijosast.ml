@@ -12,8 +12,8 @@ and sx =
   | SObjlit of (string * sexpr) list
   | SArrlit of sexpr list
   | SId of string
-  | SUnop of sexpr * op
-  | SBinop of sexpr * op * sexpr
+  | SUnop of sexpr * uop
+  | SBinop of sexpr * bop * sexpr
   | SAssign of string * sexpr
   | SCall of string * sexpr list
 

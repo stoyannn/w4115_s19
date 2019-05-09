@@ -2,7 +2,7 @@
   open Jijoast
 %}
 
-%token SEMI COLON COMMA QUEST
+%token SEMI COLON COMMA QUEST EXCL
 %token LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK
 %token PLUS MINUS MULT DIV
 %token ASSIGN
@@ -36,6 +36,7 @@
 %left DOTDOT
 %left LBRACK
 %nonassoc UMINUS
+%right EXCL
 
 %%
 
@@ -89,7 +90,6 @@ expr:
   | expr MINUS expr { Binop($1, Sub, $3) }
   | expr MULT expr { Binop($1, Mult, $3) }
   | expr DIV expr { Binop($1, Div, $3) }
-  | MINUS expr %prec UMINUS { Unop($2, Neg) }
   | expr EQ expr { Binop($1, Equal, $3) }
   | expr NEQ expr { Binop($1, Nequal, $3) }
   | expr LT expr { Binop($1, Less, $3) }
@@ -100,9 +100,12 @@ expr:
   | expr OR expr { Binop($1, Or, $3) }
   | expr IS expr { Binop($1, Is, $3) }
   | expr LBRACK expr RBRACK { Binop($1, Ind, $3) }
-  | expr LBRACK QUEST RBRACK { Unop($1, Len) }
   | expr DOT expr { Binop($1, Dot, $3) }
   | expr DOTDOT expr { Binop($1, Dotdot, $3) }
+
+  | MINUS expr %prec UMINUS { Unop($2, Neg) }
+  | EXCL expr { Unop($2, Not) }
+  | expr LBRACK QUEST RBRACK { Unop($1, Len) }
 
   | LPAREN expr RPAREN { $2 }
   | ID LPAREN expr_opt RPAREN { Call($1, $3) }
