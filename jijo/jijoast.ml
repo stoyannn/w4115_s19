@@ -4,7 +4,7 @@ type bop =
   | Equal | Nequal | Less | Lequal | Grtr | Grequal
   | And | Or | Is
   | Ind
-  | Dot | Dotdot
+  | Dot | DotDot
 
 type uop =
   | Neg | Not | Len

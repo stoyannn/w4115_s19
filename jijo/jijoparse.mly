@@ -108,7 +108,7 @@ expr:
   | expr IS expr { Binop($1, Is, $3) }
   | expr LBRACK expr RBRACK { Binop($1, Ind, $3) }
   | expr DOT expr { Binop($1, Dot, $3) }
-  | expr DOTDOT expr { Binop($1, Dotdot, $3) }
+  | expr DOTDOT expr { Binop($1, DotDot, $3) }
 
   | ID ASSIGN expr { Assign($1, $3) }
   | ID LPAREN expr_opt RPAREN { Call($1, $3) }

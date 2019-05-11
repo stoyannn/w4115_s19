@@ -1,6 +1,4 @@
 open Lexing
-open Jijoast
-open Jijoscan
 
 type ('a, 'b) result =
   | Ok of 'a
@@ -13,10 +11,13 @@ let str_of_pos_and_msg pos msg =
 
 let parse_buf lexbuf =
   try
-    let program = Jijoparse.program Jijoscan.token lexbuf in
-    Ok (Jijohelp.str_of_program program)
+    let program = Jijoparse.program Jijoscan.token lexbuf
+    in
+    let sprogram = Jijosemant.sprogram_of_program program
+    in
+    Ok (Jijohelp.str_of_sprogram sprogram)
   with
-  | SyntaxError msg ->
+  | Jijoscan.SyntaxError msg ->
     Error (lexbuf.lex_curr_p, msg)
   | Parsing.Parse_error ->
     Error (lexbuf.lex_curr_p, "syntax error")

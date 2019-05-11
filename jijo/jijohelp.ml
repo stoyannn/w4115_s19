@@ -1,13 +1,13 @@
 open Jijoast
 open Jijosast
 
-let str_of_typ_opt = function
-  | Some(Null) -> "null"
-  | Some(Bool) -> "boolean"
-  | Some(Number) -> "number"
-  | Some(String) -> "string"
-  | Some(Object) -> "object"
-  | Some(Array) -> "array"
+let str_of_typ = function
+  | Some Null -> "null"
+  | Some Bool -> "boolean"
+  | Some Number -> "number"
+  | Some String -> "string"
+  | Some Object -> "object"
+  | Some Array -> "array"
   | None -> "unknown"
 
 let str_of_uop = function
@@ -32,7 +32,7 @@ let str_of_bop = function
   | Is -> "is"
   | Ind -> ""
   | Dot -> "."
-  | Dotdot -> ".."
+  | DotDot -> ".."
 
 let rec str_of_expr = function
   | Nullit -> "null"
