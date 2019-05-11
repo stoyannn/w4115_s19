@@ -86,7 +86,11 @@ expr:
   | LBRACE field_opt RBRACE { Objlit $2 }
   | LBRACK expr_opt RBRACK { Arrlit $2 }
   | ID { Id $1 }
-  | ID ASSIGN expr { Assign($1, $3) }
+  | LPAREN expr RPAREN { $2 }
+
+  | MINUS expr %prec UMINUS { Unop($2, Neg) }
+  | EXCL expr { Unop($2, Not) }
+  | expr LBRACK QUEST RBRACK { Unop($1, Len) }
 
   | expr PLUS expr { Binop($1, Add, $3) }
   | expr MINUS expr { Binop($1, Sub, $3) }
@@ -106,15 +110,8 @@ expr:
   | expr DOT expr { Binop($1, Dot, $3) }
   | expr DOTDOT expr { Binop($1, Dotdot, $3) }
 
-  | MINUS expr %prec UMINUS { Unop($2, Neg) }
-  | EXCL expr { Unop($2, Not) }
-  | expr LBRACK QUEST RBRACK { Unop($1, Len) }
-
-  | LPAREN expr RPAREN { $2 }
+  | ID ASSIGN expr { Assign($1, $3) }
   | ID LPAREN expr_opt RPAREN { Call($1, $3) }
-
-field:
-  | ID COLON expr { ($1, $3) }
 
 expr_opt:
   | { [] }
@@ -139,4 +136,7 @@ field_opt:
 field_list:
   | field { [$1] }
   | field COMMA field_list { $1 :: $3 }
+
+field:
+  | ID COLON expr { ($1, $3) }
 

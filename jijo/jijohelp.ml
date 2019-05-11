@@ -2,7 +2,6 @@ open Jijoast
 open Jijosast
 
 let str_of_typ_opt = function
-  | Some(Void) -> "void"
   | Some(Null) -> "null"
   | Some(Bool) -> "boolean"
   | Some(Number) -> "number"

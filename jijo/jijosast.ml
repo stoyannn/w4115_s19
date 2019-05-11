@@ -1,7 +1,7 @@
 open Jijoast
 
 type typ =
-  | Void | Null | Bool | Number | String | Object | Array
+  | Null | Bool | Number | String | Object | Array
 
 type sexpr = typ option * sx
 and sx =
