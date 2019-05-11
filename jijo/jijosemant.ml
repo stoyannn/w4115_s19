@@ -40,15 +40,23 @@ let is_expr_call e = match e with
   | _ -> false
 in
 
-let rec sexpr_list_of_expr_list cont el =
-  let add_expr (c, sel) e =
-    let (c', se) = sexpr_of_expr c e
+let rec sexpr_of_expr cont expr =
+  let sexpr_list_of_expr_list cont el =
+    let add_expr (c, sel) e =
+      let (c', e') = sexpr_of_expr c e
+      in
+      (c', e' :: sel)
     in
-    (c', se :: sel)
+    List.fold_left add_expr (cont, []) el
   in
-  List.fold_left add_expr (cont, []) el
-
-and sexpr_of_expr cont expr =
+  let sfield_list_of_field_list cont fl =
+    let add_field (c, sfl) (f, e) =
+      let (c', e') = sexpr_of_expr c e
+      in
+      (c', (f, e') :: sfl)
+    in
+    List.fold_left add_field (cont, []) fl
+  in
   let type_of_id id =
     if cont.accessible then
       None
@@ -62,10 +70,14 @@ and sexpr_of_expr cont expr =
   | Boolit x -> (cont, (Some Bool, SBoolit x))
   | Numlit x -> (cont, (Some Number, SNumlit x))
   | Strlit x -> (cont, (Some String, SStrlit x))
-(*
-  | Objlit x -> (cont, (Object, SObjlit x))
-  | Arrlit x -> (cont, (Array, SArrlit x))
-*)
+  | Objlit fl ->
+    let (cont', fl') = sfield_list_of_field_list cont fl
+    in
+    (cont', (Some Object, SObjlit (List.rev fl')))
+  | Arrlit el ->
+    let (cont', el') = sexpr_list_of_expr_list cont el
+    in
+    (cont', (Some Array, SArrlit (List.rev el')))
   | Id x -> (cont, (type_of_id x, SId x))
   | Unop(e, o) as x ->
     let (cont', (t, e')) = sexpr_of_expr cont e
