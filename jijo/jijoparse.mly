@@ -85,7 +85,8 @@ func_list:
   | func func_list { $1 :: $2 }
 
 func:
-  | ID LPAREN id_opt RPAREN LBRACE stmt_list RBRACE {{ pos = fst $1; name = snd $1; args = $3; body = $6}}
+  | ID LPAREN id_opt RPAREN ASSIGN LBRACE stmt_list RBRACE
+    {{ pos = fst $1; name = snd $1; args = $3; body = $7}}
 
 stmt_list:
   | { [] }

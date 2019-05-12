@@ -102,5 +102,5 @@ and token_string str = parse
   | "\\t"         { Buffer.add_char str '\t'; token_string str lexbuf }
   | [^ '"' '\\']+ { Buffer.add_string str (Lexing.lexeme lexbuf); token_string str lexbuf }
   | eof           { raise (SyntaxError (pos lexbuf, "String literal not terminated")) }
-  | _ as chr      { raise (SyntaxError (pos lexbuf, "Illegal character " ^ Char.escaped chr)) }
+  | _ as chr      { raise (SyntaxError (pos lexbuf, "Illegal character: " ^ Char.escaped chr)) }
 

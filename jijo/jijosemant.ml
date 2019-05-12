@@ -69,7 +69,7 @@ let rec sexpr_of_expr cont expr =
     else
       try StringMap.find id cont.symtab
       with Not_found ->
-        raise (SemantError (pos, cont.fname, "variable " ^ id ^ " may not have been initialized"))
+        raise (SemantError (pos, cont.fname, "variable may not have been initialized: " ^ id))
   in
   match expr with
   | Nullit (p) -> (cont, (Some Null, SNullit p))
@@ -138,12 +138,12 @@ let rec sexpr_of_expr cont expr =
   | Call (p, f, el) ->
     let func = 
       try StringMap.find f cont.funtab
-      with Not_found -> raise (SemantError(p, cont.fname, "undefined function: " ^ f))
+      with Not_found -> raise (SemantError(p, cont.fname, "undefined function name: " ^ f))
     in
     let argc = List.length func.args
     in
     if List.length el != argc then
-      raise (SemantError (p, cont.fname, "incorrect number of arguments in call: " ^ f))
+      raise (SemantError (p, cont.fname, "incorrect number of arguments in call to: " ^ f))
     else
       let (cont', el') = sexpr_list_of_expr_list cont el
       in
@@ -225,7 +225,7 @@ in
 let sfunc_of_func cont func =
   let add_arg m a =
     if StringMap.mem a m then
-      raise (SemantError (func.pos, func.name, "duplicate argument: " ^ a))
+      raise (SemantError (func.pos, func.name, "duplicate argument name: " ^ a))
     else
       StringMap.add a None m
   in
@@ -245,7 +245,7 @@ in
 let create_init_cont program =
   let add_func m f =
     if StringMap.mem f.name m then
-      raise (SemantError (f.pos, f.name, "duplicate function"))
+      raise (SemantError (f.pos, f.name, "duplicate function name: " ^ f.name))
     else
       StringMap.add f.name f m
   in
