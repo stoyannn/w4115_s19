@@ -6,7 +6,7 @@ type result =
 
 let str_of_error ln ch func msg =
   let trail = match func with
-    | Some(x) -> ", function " ^ x ^ ":\n"
+    | Some(x) -> ", function '" ^ x ^ "':\n"
     | None -> ":\n"
   in
   "Line " ^ (string_of_int ln) ^ ", character " ^ (string_of_int ch) ^ trail ^
@@ -27,7 +27,7 @@ let parse_buf lexbuf =
     in
     Error (p.pos_lnum, p.pos_cnum - p.pos_bol, None, "Syntax error")
   | Jijosemant.SemantError ((ln, ch), func, msg) ->
-    Error (ln, ch, Some func, msg)
+    Error (ln, ch, func, msg)
 
 let _ =
   let lexbuf = Lexing.from_channel stdin in
