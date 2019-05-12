@@ -1,26 +1,61 @@
+/*
+ * JIJO parser rules.
+ */
+
 %{
   open Jijoast
 %}
 
-%token SEMI COLON COMMA QUEST EXCL
-%token LPAREN RPAREN LBRACE RBRACE LBRACK RBRACK
-%token PLUS MINUS MULT DIV
-%token CONCAT
-%token ASSIGN
-%token EQ NEQ LT LEQ GT GEQ
-%token AND OR
-%token DOT DOTDOT
+%token <int * int> SEMI
+%token <int * int> COLON
+%token <int * int> COMMA
+%token <int * int> QUEST
+%token <int * int> EXCL
 
-%token BREAK CONTINUE ELSE IF IS RETURN WHILE
+%token <int * int> LPAREN
+%token <int * int> RPAREN
+%token <int * int> LBRACE
+%token <int * int> RBRACE
+%token <int * int> LBRACK
+%token <int * int> RBRACK
 
-%token NULLIT
-%token <bool> BOOLIT
-%token <float> NUMLIT
-%token <string> STRLIT
+%token <int * int> PLUS
+%token <int * int> MINUS
+%token <int * int> MULT
+%token <int * int> DIV
+%token <int * int> CONCAT
 
-%token <string> ID
+%token <int * int> ASSIGN
 
-%token EOF
+%token <int * int> EQ
+%token <int * int> NEQ
+%token <int * int> LT
+%token <int * int> LEQ
+%token <int * int> GT
+%token <int * int> GEQ
+
+%token <int * int> AND
+%token <int * int> OR
+
+%token <int * int> DOT
+%token <int * int> DOTDOT
+
+%token <int * int> BREAK
+%token <int * int> CONTINUE
+%token <int * int> ELSE
+%token <int * int> IF
+%token <int * int> IS 
+%token <int * int> RETURN
+%token <int * int> WHILE
+
+%token <int * int> NULLIT
+%token <(int * int) * bool> BOOLIT
+%token <(int * int) * float> NUMLIT
+%token <(int * int) * string> STRLIT
+
+%token <(int * int) * string> ID
+
+%token <int * int> EOF
 
 %start program
 %type <Jijoast.program> program
@@ -50,7 +85,7 @@ func_list:
   | func func_list { $1 :: $2 }
 
 func:
-  | ID LPAREN id_opt RPAREN LBRACE stmt_list RBRACE { {name = $1; args = $3; body = $6} }
+  | ID LPAREN id_opt RPAREN LBRACE stmt_list RBRACE {{ pos = fst $1; name = snd $1; args = $3; body = $6}}
 
 stmt_list:
   | { [] }
@@ -68,50 +103,50 @@ stmt_list:
  *   Default YACC resolution to reduce first rule will use curly braces as stmt_list delimiter
  */
 stmt:
-  | LBRACE stmt_list RBRACE { Block $2 }
-  | BREAK SEMI { Break }
-  | CONTINUE SEMI { Continue }
-  | IF LPAREN expr RPAREN stmt { If($3, $5) }
-  | IF LPAREN expr RPAREN stmt ELSE stmt { IfElse($3, $5, $7) }
-  | WHILE LPAREN expr RPAREN stmt { While($3, $5) }
-  | RETURN expr SEMI { Return(Some $2) }
-  | RETURN SEMI { Return None }
-  | expr SEMI { Expr $1 }
+  | LBRACE stmt_list RBRACE { Block ($1, $2) }
+  | BREAK SEMI { Break $1 }
+  | CONTINUE SEMI { Continue $1 }
+  | IF LPAREN expr RPAREN stmt { If ($1, $3, $5) }
+  | IF LPAREN expr RPAREN stmt ELSE stmt { IfElse ($1, $3, $5, $7) }
+  | WHILE LPAREN expr RPAREN stmt { While ($1, $3, $5) }
+  | RETURN expr SEMI { Return ($1, Some $2) }
+  | RETURN SEMI { Return ($1, None) }
+  | expr SEMI { Expr ($2, $1) }
 
 expr:
-  | NULLIT { Nullit }
-  | BOOLIT { Boolit $1 }
-  | NUMLIT { Numlit $1 }
-  | STRLIT { Strlit $1 }
-  | LBRACE field_opt RBRACE { Objlit $2 }
-  | LBRACK expr_opt RBRACK { Arrlit $2 }
-  | ID { Id $1 }
+  | NULLIT { Nullit $1 }
+  | BOOLIT { Boolit (fst $1, snd $1) }
+  | NUMLIT { Numlit (fst $1, snd $1) }
+  | STRLIT { Strlit (fst $1, snd $1) }
+  | LBRACE field_opt RBRACE { Objlit ($1, $2) }
+  | LBRACK expr_opt RBRACK { Arrlit ($1, $2) }
+  | ID { Id (fst $1, snd $1) }
   | LPAREN expr RPAREN { $2 }
 
-  | MINUS expr %prec UMINUS { Unop($2, Neg) }
-  | EXCL expr { Unop($2, Not) }
-  | expr LBRACK QUEST RBRACK { Unop($1, Len) }
+  | MINUS expr %prec UMINUS { Unop ($1, $2, Neg $1) }
+  | EXCL expr { Unop ($1, $2, Not $1) }
+  | expr LBRACK QUEST RBRACK { Unop ($3, $1, Len $3) }
 
-  | expr PLUS expr { Binop($1, Add, $3) }
-  | expr MINUS expr { Binop($1, Sub, $3) }
-  | expr MULT expr { Binop($1, Mult, $3) }
-  | expr DIV expr { Binop($1, Div, $3) }
-  | expr CONCAT expr { Binop($1, Concat, $3) }
-  | expr EQ expr { Binop($1, Equal, $3) }
-  | expr NEQ expr { Binop($1, Nequal, $3) }
-  | expr LT expr { Binop($1, Less, $3) }
-  | expr LEQ expr { Binop($1, Lequal, $3) }
-  | expr GT expr { Binop($1, Grtr, $3) }
-  | expr GEQ expr { Binop($1, Grequal, $3) }
-  | expr AND expr { Binop($1, And, $3) }
-  | expr OR expr { Binop($1, Or, $3) }
-  | expr IS expr { Binop($1, Is, $3) }
-  | expr LBRACK expr RBRACK { Binop($1, Ind, $3) }
-  | expr DOT expr { Binop($1, Dot, $3) }
-  | expr DOTDOT expr { Binop($1, DotDot, $3) }
+  | expr PLUS expr { Binop ($2, $1, Add $2, $3) }
+  | expr MINUS expr { Binop ($2, $1, Sub $2, $3) }
+  | expr MULT expr { Binop ($2, $1, Mult $2, $3) }
+  | expr DIV expr { Binop ($2, $1, Div $2, $3) }
+  | expr CONCAT expr { Binop ($2, $1, Concat $2, $3) }
+  | expr EQ expr { Binop ($2, $1, Equal $2, $3) }
+  | expr NEQ expr { Binop ($2, $1, Nequal $2, $3) }
+  | expr LT expr { Binop ($2, $1, Less $2, $3) }
+  | expr LEQ expr { Binop ($2, $1, Lequal $2, $3) }
+  | expr GT expr { Binop ($2, $1, Grtr $2, $3) }
+  | expr GEQ expr { Binop ($2, $1, Grequal $2, $3) }
+  | expr AND expr { Binop ($2, $1, And $2, $3) }
+  | expr OR expr { Binop ($2, $1, Or $2, $3) }
+  | expr IS expr { Binop ($2, $1, Is $2, $3) }
+  | expr LBRACK expr RBRACK { Binop ($2, $1, Ind $2, $3) }
+  | expr DOT expr { Binop ($2, $1, Dot $2, $3) }
+  | expr DOTDOT expr { Binop ($2, $1, DotDot $2, $3) }
 
-  | ID ASSIGN expr { Assign($1, $3) }
-  | ID LPAREN expr_opt RPAREN { Call($1, $3) }
+  | ID ASSIGN expr { Assign (fst $1, snd $1, $3) }
+  | ID LPAREN expr_opt RPAREN { Call(fst $1, snd $1, $3) }
 
 expr_opt:
   | { [] }
@@ -126,8 +161,8 @@ id_opt:
   | id_list { $1 }
 
 id_list:
-  | ID { [$1] }
-  | ID COMMA id_list { $1 :: $3 }
+  | ID { [snd $1] }
+  | ID COMMA id_list { snd $1 :: $3 }
 
 field_opt:
   | { [] }
@@ -138,5 +173,5 @@ field_list:
   | field COMMA field_list { $1 :: $3 }
 
 field:
-  | ID COLON expr { ($1, $3) }
+  | ID COLON expr { (snd $1, $3) }
 

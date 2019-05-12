@@ -1,3 +1,7 @@
+(*
+ * JIJO semantic analyzer.
+ *)
+
 open Jijoast
 open Jijosast
 
@@ -66,68 +70,68 @@ let rec sexpr_of_expr cont expr =
         raise (fail cont.fname ("variable " ^ id ^ " may not have been initialized"))
   in
   match expr with
-  | Nullit -> (cont, (Some Null, SNullit))
-  | Boolit x -> (cont, (Some Bool, SBoolit x))
-  | Numlit x -> (cont, (Some Number, SNumlit x))
-  | Strlit x -> (cont, (Some String, SStrlit x))
-  | Objlit fl ->
+  | Nullit (p) -> (cont, (Some Null, SNullit p))
+  | Boolit (p, x) -> (cont, (Some Bool, SBoolit (p, x)))
+  | Numlit (p, x) -> (cont, (Some Number, SNumlit (p, x)))
+  | Strlit (p, x) -> (cont, (Some String, SStrlit (p, x)))
+  | Objlit (p, fl) ->
     let (cont', fl') = sfield_list_of_field_list cont fl
     in
-    (cont', (Some Object, SObjlit (List.rev fl')))
-  | Arrlit el ->
+    (cont', (Some Object, SObjlit (p, List.rev fl')))
+  | Arrlit (p, el) ->
     let (cont', el') = sexpr_list_of_expr_list cont el
     in
-    (cont', (Some Array, SArrlit (List.rev el')))
-  | Id x -> (cont, (type_of_id x, SId x))
-  | Unop(e, o) as x ->
+    (cont', (Some Array, SArrlit (p, List.rev el')))
+  | Id (p, x) -> (cont, (type_of_id x, SId (p, x)))
+  | Unop (p, e, o) as x ->
     let (cont', (t, e')) = sexpr_of_expr cont e
     in
     let t' = match o with
-      | Neg when is_typ t Number -> Some Number
-      | Not when is_typ t Bool -> Some Bool
-      | Len when (is_typ t String) || (is_typ t Array) -> Some Number
+      | Neg (_) when is_typ t Number -> Some Number
+      | Not (_) when is_typ t Bool -> Some Bool
+      | Len (_) when (is_typ t String) || (is_typ t Array) -> Some Number
       | _ -> raise (fail cont.fname ("unary operator " ^ (Jijohelp.str_of_uop o) ^
         " cannot be applied to type " ^ (Jijohelp.str_of_typ t) ^
         " in expression: " ^ (Jijohelp.str_of_expr x)))
     in
-    (cont', (t', SUnop((t, e'), o)))
-  | Binop(e1, o, e2) as x ->
+    (cont', (t', SUnop(p, (t, e'), o)))
+  | Binop (p, e1, o, e2) as x ->
     let (cont', (t1, e1')) = sexpr_of_expr cont e1
     in
     let (cont'', (t2, e2')) = sexpr_of_expr cont' e2
     in
     let t' = match o with
-      | Add when (is_typ t1 Number) && (is_typ t2 Number) -> Some Number
-      | Sub when (is_typ t1 Number) && (is_typ t2 Number) -> Some Number
-      | Mult when (is_typ t1 Number) && (is_typ t2 Number) -> Some Number
-      | Div when (is_typ t1 Number) && (is_typ t2 Number) -> Some Number
-      | Concat when (is_typ t1 String) && (is_typ t2 String) -> Some String
-      | Equal when is_typ_eq t1 t2 -> Some Bool
-      | Nequal when is_typ_eq t1 t2 -> Some Bool
-      | Less when is_typ_eq t1 t2 -> Some Bool
-      | Lequal when is_typ_eq t1 t2 -> Some Bool
-      | Grtr when is_typ_eq t1 t2 -> Some Bool
-      | Grequal when is_typ_eq t1 t2 -> Some Bool
-      | And when (is_typ t1 Bool) && (is_typ t2 Bool) -> Some Bool
-      | Or when (is_typ t1 Bool) && (is_typ t2 Bool) -> Some Bool
-      | Is -> Some Bool
-      | Ind when (t1 = Some(String)) && (is_typ t2 Number) -> Some String
-      | Ind when (is_typ t1 Array) && (is_typ t2 Number) -> None
-      | Dot when (is_expr_id e2) -> None
-      | DotDot when (is_expr_call e2) -> None
+      | Add (_) when (is_typ t1 Number) && (is_typ t2 Number) -> Some Number
+      | Sub (_) when (is_typ t1 Number) && (is_typ t2 Number) -> Some Number
+      | Mult (_) when (is_typ t1 Number) && (is_typ t2 Number) -> Some Number
+      | Div (_) when (is_typ t1 Number) && (is_typ t2 Number) -> Some Number
+      | Concat (_) when (is_typ t1 String) && (is_typ t2 String) -> Some String
+      | Equal (_) when is_typ_eq t1 t2 -> Some Bool
+      | Nequal (_) when is_typ_eq t1 t2 -> Some Bool
+      | Less (_) when is_typ_eq t1 t2 -> Some Bool
+      | Lequal (_) when is_typ_eq t1 t2 -> Some Bool
+      | Grtr (_) when is_typ_eq t1 t2 -> Some Bool
+      | Grequal (_) when is_typ_eq t1 t2 -> Some Bool
+      | And (_) when (is_typ t1 Bool) && (is_typ t2 Bool) -> Some Bool
+      | Or (_) when (is_typ t1 Bool) && (is_typ t2 Bool) -> Some Bool
+      | Is (_) -> Some Bool
+      | Ind (_) when (t1 = Some(String)) && (is_typ t2 Number) -> Some String
+      | Ind (_) when (is_typ t1 Array) && (is_typ t2 Number) -> None
+      | Dot (_) when (is_expr_id e2) -> None
+      | DotDot (_) when (is_expr_call e2) -> None
       | _ -> raise (fail cont.fname ("binary operator " ^ (Jijohelp.str_of_bop o) ^
         " cannot be applied to types " ^ (Jijohelp.str_of_typ t1) ^
         " and " ^ (Jijohelp.str_of_typ t2) ^
         " in expression: " ^ (Jijohelp.str_of_expr x)))
     in
-    (cont'', (t', SBinop((t1, e1'), o, (t2, e2'))))
-  | Assign(s, e) ->
+    (cont'', (t', SBinop(p, (t1, e1'), o, (t2, e2'))))
+  | Assign (p, s, e) ->
     let (cont', (t, e')) = sexpr_of_expr cont e
     in
     let cont'' = {cont' with symtab = StringMap.add s None cont'.symtab}
     in
-    (cont'', (t, SAssign(s, (t, e'))))
-  | Call(f, el) ->
+    (cont'', (t, SAssign(p, s, (t, e'))))
+  | Call (p, f, el) ->
     let func = 
       try StringMap.find f cont.funtab
       with Not_found -> raise (fail cont.fname ("undefined function: " ^ f))
@@ -139,14 +143,14 @@ let rec sexpr_of_expr cont expr =
     else
       let (cont', el') = sexpr_list_of_expr_list cont el
       in
-      (cont', (None, SCall(f, (List.rev el'))))
+      (cont', (None, SCall(p, f, (List.rev el'))))
 in
 
 (* OK *)
 let rec sstmt_list_of_stmt_list cont sl =
   match sl with
   | [] -> []
-  | Block sl :: sl' -> sstmt_list_of_stmt_list cont (sl @ sl')
+  | Block (_, sl) :: sl' -> sstmt_list_of_stmt_list cont (sl @ sl')
   | s :: sl ->
     let (cont', s') = sstmt_of_stmt cont s
     in s' :: sstmt_list_of_stmt_list cont' sl
@@ -160,41 +164,41 @@ and sstmt_of_stmt cont stmt =
     " cannot be used as condition in: " ^ (Jijohelp.str_of_stmt s))
   in
   match stmt with
-  | Block sl -> 
+  | Block (p, sl) -> 
     let cont' =
       {cont with parent = Some cont; symtab = StringMap.empty; accessible = false}
     in
-    (cont, SBlock(sstmt_list_of_stmt_list cont' sl))
-  | Expr e ->
+    (cont, SBlock(p, sstmt_list_of_stmt_list cont' sl))
+  | Expr (p, e) ->
     let (cont', e') = sexpr_of_expr cont e
     in
-    (cont', SExpr e')
-  | Break as x -> 
-    if cont.breakable then ({cont with finished = true}, SBreak)
+    (cont', SExpr (p, e'))
+  | Break (p) as x -> 
+    if cont.breakable then ({cont with finished = true}, SBreak p)
     else raise (fail_break x)
-  | Continue as x -> 
-    if cont.breakable then ({cont with finished = true}, SContinue)
+  | Continue (p) as x -> 
+    if cont.breakable then ({cont with finished = true}, SContinue p)
     else raise (fail_break x)
-  | If (e, s) as x ->
+  | If (p, e, s) as x ->
     let (cont', (t, e')) = sexpr_of_expr cont e
     in
     if is_typ t Bool then
       let (_, s') = sstmt_of_stmt cont' s
       in
-      (cont', SIf ((t, e'), s'))
+      (cont', SIf (p, (t, e'), s'))
     else
       raise (fail_cond t x)
-  | IfElse (e, s1, s2) as x ->
+  | IfElse (p, e, s1, s2) as x ->
     let (cont', (t, e')) = sexpr_of_expr cont e
     in
     if is_typ t Bool then
       let (_, s1') = sstmt_of_stmt cont' s1
       and (_, s2') = sstmt_of_stmt cont' s2
       in
-      (cont', SIfElse((t, e'), s1', s2'))
+      (cont', SIfElse(p, (t, e'), s1', s2'))
     else
       raise (fail_cond t x)
-  | While (e, s) as x ->
+  | While (p, e, s) as x ->
     let (cont', (t, e')) = sexpr_of_expr cont e
     in
     if is_typ t Bool then
@@ -202,14 +206,14 @@ and sstmt_of_stmt cont stmt =
       in
       let (_, s') = sstmt_of_stmt cont'' s
       in
-      (cont', SWhile((t, e'), s'))
+      (cont', SWhile(p, (t, e'), s'))
     else
       raise (fail_cond t x)
-  | Return (Some e) ->
+  | Return (p, Some e) ->
     let (cont', e') = sexpr_of_expr cont e
     in
-    ({cont' with finished = true}, SReturn (Some e'))
-  | Return None -> ({cont with finished = true}, SReturn None)
+    ({cont' with finished = true}, SReturn (p, Some e'))
+  | Return (p, None) -> ({cont with finished = true}, SReturn (p, None))
 in
 
 (* OK *)
@@ -223,6 +227,7 @@ let sfunc_of_func cont func =
   let cont' = {cont with parent = Some cont; fname = func.name; symtab = symtab'}
   in
   {
+    spos = func.pos;
     sname = func.name;
     sargs = func.args;
     sbody = sstmt_list_of_stmt_list cont' func.body

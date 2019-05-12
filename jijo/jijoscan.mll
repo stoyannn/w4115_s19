@@ -1,8 +1,19 @@
+(*
+ * JIJO scanner rules.
+ *)
+
 {
   open Lexing
   open Jijoparse
 
-  exception SyntaxError of string
+  (* (line, char), message *)
+  exception SyntaxError of (int * int) * string
+
+  (* gets current (line, char) position in lexbuf *)
+  let pos lexbuf =
+    let p = lexbuf.lex_curr_p
+    in
+    (p.pos_lnum, p.pos_cnum - p.pos_bol + 1)
 }
 
 let digit = ['0'-'9']
@@ -17,59 +28,59 @@ rule token = parse
   | "//" { token_linecomment lexbuf }
   | "/*" { token_blockcomment lexbuf }
 
-  | ';' { SEMI }
-  | ':' { COLON }
-  | ',' { COMMA }
-  | '?' { QUEST }
-  | '!' { EXCL }
+  | ';' { SEMI (pos lexbuf) }
+  | ':' { COLON (pos lexbuf) }
+  | ',' { COMMA (pos lexbuf) }
+  | '?' { QUEST (pos lexbuf) }
+  | '!' { EXCL (pos lexbuf) }
 
-  | '(' { LPAREN }
-  | ')' { RPAREN }
-  | '{' { LBRACE }
-  | '}' { RBRACE }
-  | '[' { LBRACK }
-  | ']' { RBRACK }
+  | '(' { LPAREN (pos lexbuf) }
+  | ')' { RPAREN (pos lexbuf) }
+  | '{' { LBRACE (pos lexbuf) }
+  | '}' { RBRACE (pos lexbuf) }
+  | '[' { LBRACK (pos lexbuf) }
+  | ']' { RBRACK (pos lexbuf) }
 
-  | '+' { PLUS }
-  | '-' { MINUS }
-  | '*' { MULT }
-  | '/' { DIV }
+  | '+' { PLUS (pos lexbuf) }
+  | '-' { MINUS (pos lexbuf) }
+  | '*' { MULT (pos lexbuf) }
+  | '/' { DIV (pos lexbuf) }
 
-  | '^' { CONCAT }
+  | '^' { CONCAT (pos lexbuf) }
 
-  | '=' { ASSIGN }
+  | '=' { ASSIGN (pos lexbuf) }
 
-  | "==" { EQ }
-  | "!=" { NEQ }
-  | '<'  { LT }
-  | "<=" { LEQ }
-  | '>'  { GT }
-  | ">=" { GEQ }
+  | "==" { EQ (pos lexbuf) }
+  | "!=" { NEQ (pos lexbuf) }
+  | '<'  { LT (pos lexbuf) }
+  | "<=" { LEQ (pos lexbuf) }
+  | '>'  { GT (pos lexbuf) }
+  | ">=" { GEQ (pos lexbuf) }
 
-  | "&&" { AND }
-  | "||" { OR }
+  | "&&" { AND (pos lexbuf) }
+  | "||" { OR (pos lexbuf) }
 
-  | '.'  { DOT }
-  | ".." { DOTDOT }
+  | '.'  { DOT (pos lexbuf) }
+  | ".." { DOTDOT (pos lexbuf) }
 
-  | "break"    { BREAK }
-  | "continue" { CONTINUE }
-  | "else"     { ELSE }
-  | "if"       { IF }
-  | "is"       { IS }
-  | "return"   { RETURN }
-  | "while"    { WHILE }
+  | "break"    { BREAK (pos lexbuf) }
+  | "continue" { CONTINUE (pos lexbuf) }
+  | "else"     { ELSE (pos lexbuf) }
+  | "if"       { IF (pos lexbuf) }
+  | "is"       { IS (pos lexbuf) }
+  | "return"   { RETURN (pos lexbuf) }
+  | "while"    { WHILE (pos lexbuf) }
 
-  | "null"                          { NULLIT }
-  | "true"                          { BOOLIT(true) }
-  | "false"                         { BOOLIT(false) }
-  | (digit)+ ('.' (digit)+)? as num { NUMLIT(float_of_string num) }
+  | "null"                          { NULLIT (pos lexbuf) }
+  | "true"                          { BOOLIT ((pos lexbuf), true) }
+  | "false"                         { BOOLIT ((pos lexbuf), false) }
+  | (digit)+ ('.' (digit)+)? as num { NUMLIT ((pos lexbuf), float_of_string num) }
   | '"'                             { token_string (Buffer.create 16) lexbuf }
 
-  | (letter|'_') (letter|digit|'_')* as id { ID(id) }
+  | (letter|'_') (letter|digit|'_')* as id { ID ((pos lexbuf), id) }
 
-  | eof      { EOF }
-  | _ as chr { raise (SyntaxError("Illegal character: " ^ Char.escaped chr)) }
+  | eof      { EOF (pos lexbuf) }
+  | _ as chr { raise (SyntaxError (pos lexbuf, "Illegal character: " ^ Char.escaped chr)) }
 
 and token_linecomment = parse
   | newline { Lexing.new_line lexbuf; token lexbuf }
@@ -82,7 +93,7 @@ and token_blockcomment = parse
 
 and token_string str = parse
   | newline       { Lexing.new_line lexbuf; token_string str lexbuf }
-  | '"'           { STRLIT (Buffer.contents str) }
+  | '"'           { STRLIT ((pos lexbuf), Buffer.contents str) }
   | "\\\""        { Buffer.add_char str '"'; token_string str lexbuf }
   | "\\\\"        { Buffer.add_char str '\\'; token_string str lexbuf }
   | "\\b"         { Buffer.add_char str '\b'; token_string str lexbuf }
@@ -90,6 +101,6 @@ and token_string str = parse
   | "\\r"         { Buffer.add_char str '\r'; token_string str lexbuf }
   | "\\t"         { Buffer.add_char str '\t'; token_string str lexbuf }
   | [^ '"' '\\']+ { Buffer.add_string str (Lexing.lexeme lexbuf); token_string str lexbuf }
-  | eof           { raise (SyntaxError ("String literal not terminated")) }
-  | _ as chr      { raise (SyntaxError ("Illegal character " ^ Char.escaped chr)) }
+  | eof           { raise (SyntaxError (pos lexbuf, "String literal not terminated")) }
+  | _ as chr      { raise (SyntaxError (pos lexbuf, "Illegal character " ^ Char.escaped chr)) }
 

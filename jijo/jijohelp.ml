@@ -1,3 +1,7 @@
+(*
+ * JIJO compiler helper functions.
+ *)
+
 open Jijoast
 open Jijosast
 
@@ -11,92 +15,96 @@ let str_of_typ = function
   | None -> "unknown"
 
 let str_of_uop = function
-  | Neg -> "-"
-  | Not -> "!"
-  | Len -> "[?]"
+  | Neg _ -> "-"
+  | Not _ -> "!"
+  | Len _ -> "[?]"
 
 let str_of_bop = function
-  | Add -> "+"
-  | Sub -> "-"
-  | Mult -> "*"
-  | Concat -> "&"
-  | Div -> "/"
-  | Equal -> "=="
-  | Nequal -> "!="
-  | Less -> "<"
-  | Lequal -> "<="
-  | Grtr -> ">"
-  | Grequal -> ">="
-  | And -> "&&"
-  | Or -> "||"
-  | Is -> "is"
-  | Ind -> ""
-  | Dot -> "."
-  | DotDot -> ".."
+  | Add _ -> "+"
+  | Sub _ -> "-"
+  | Mult _ -> "*"
+  | Concat _ -> "&"
+  | Div _ -> "/"
+  | Equal _ -> "=="
+  | Nequal _ -> "!="
+  | Less _ -> "<"
+  | Lequal _ -> "<="
+  | Grtr _ -> ">"
+  | Grequal _ -> ">="
+  | And _ -> "&&"
+  | Or _ -> "||"
+  | Is _ -> "is"
+  | Ind _ -> ""
+  | Dot _ -> "."
+  | DotDot _ -> ".."
 
 let rec str_of_expr = function
-  | Nullit -> "null"
-  | Boolit(true) -> "true"
-  | Boolit(false) -> "false"
-  | Numlit(n) -> string_of_float n
-  | Strlit(s) -> "\"" ^ s ^ "\""
-  | Objlit(fl) -> "<obj> {" ^
+  | Nullit _ -> "null"
+  | Boolit (_, true) -> "true"
+  | Boolit (_, false) -> "false"
+  | Numlit (_, n) -> string_of_float n
+  | Strlit (_, s) -> "\"" ^ s ^ "\""
+  | Objlit (_, fl) -> "<obj> {" ^
     (String.concat ", " (List.map (fun f -> (fst f) ^ ":" ^ (str_of_expr (snd f))) fl)) ^
     "}"
-  | Arrlit(el) -> "<arr> [" ^
+  | Arrlit (_, el) -> "<arr> [" ^
     (String.concat ", " (List.map str_of_expr el)) ^
     "]"
-  | Id(s) -> s
-  | Unop(e, o) when o = Len -> (str_of_expr e) ^ " " ^ (str_of_uop o)
-  | Unop(e, o) -> (str_of_uop o) ^ " " ^ (str_of_expr e)
-  | Binop(e1, o, e2) when o = Ind -> (str_of_expr e1) ^ " [" ^ (str_of_expr e2) ^ "]"
-  | Binop(e1, o, e2) -> (str_of_expr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_expr e2)
-  | Assign(s, e) -> s ^ " = " ^ (str_of_expr e)
-  | Call(s, el) -> s ^ "(" ^ (String.concat ", " (List.map str_of_expr el)) ^ ")"
+  | Id (_, s) -> s
+  | Unop (_, e, o) when (match o with Len _ -> true | _ -> false) ->
+    (str_of_expr e) ^ " " ^ (str_of_uop o)
+  | Unop (_, e, o) -> (str_of_uop o) ^ " " ^ (str_of_expr e)
+  | Binop (_, e1, o, e2) when (match o with Ind _ -> true | _ -> false) ->
+    (str_of_expr e1) ^ " [" ^ (str_of_expr e2) ^ "]"
+  | Binop (_, e1, o, e2) -> (str_of_expr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_expr e2)
+  | Assign (_, s, e) -> s ^ " = " ^ (str_of_expr e)
+  | Call (_, s, el) -> s ^ "(" ^ (String.concat ", " (List.map str_of_expr el)) ^ ")"
 
 let rec str_of_sexpr = function
-  | (_, SNullit) -> "null"
-  | (_, SBoolit(true)) -> "true"
-  | (_, SBoolit(false)) -> "false"
-  | (_, SNumlit(n)) -> string_of_float n
-  | (_, SStrlit(s)) -> "\"" ^ s ^ "\""
-  | (_, SObjlit(fl)) -> "<obj> {" ^
+  | (_, SNullit _) -> "null"
+  | (_, SBoolit (_, true)) -> "true"
+  | (_, SBoolit (_, false)) -> "false"
+  | (_, SNumlit (_, n)) -> string_of_float n
+  | (_, SStrlit (_, s)) -> "\"" ^ s ^ "\""
+  | (_, SObjlit (_, fl)) -> "<obj> {" ^
     (String.concat ", " (List.map (fun f -> (fst f) ^ ":" ^ (str_of_sexpr (snd f))) fl)) ^
     "}"
-  | (_, SArrlit(el)) -> "<arr> [" ^
+  | (_, SArrlit(_, el)) -> "<arr> [" ^
     (String.concat ", " (List.map str_of_sexpr el)) ^
     "]"
-  | (_, SId(s)) -> s
-  | (_, SUnop(e, o)) when o = Len -> (str_of_sexpr e) ^ " " ^ (str_of_uop o)
-  | (_, SUnop(e, o)) -> (str_of_uop o) ^ " " ^ (str_of_sexpr e)
-  | (_, SBinop(e1, o, e2)) when o = Ind -> (str_of_sexpr e1) ^ " [" ^ (str_of_sexpr e2) ^ "]"
-  | (_, SBinop(e1, o, e2)) -> (str_of_sexpr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_sexpr e2)
-  | (_, SAssign(s, e)) -> s ^ " = " ^ (str_of_sexpr e)
-  | (_, SCall(s, el)) -> s ^ "(" ^ (String.concat ", " (List.map str_of_sexpr el)) ^ ")"
+  | (_, SId (_, s)) -> s
+  | (_, SUnop (_, e, o)) when (match o with Len _ -> true | _ -> false) ->
+    (str_of_sexpr e) ^ " " ^ (str_of_uop o)
+  | (_, SUnop (_, e, o)) -> (str_of_uop o) ^ " " ^ (str_of_sexpr e)
+  | (_, SBinop (_, e1, o, e2)) when (match o with Ind _ -> true | _ -> false) ->
+    (str_of_sexpr e1) ^ " [" ^ (str_of_sexpr e2) ^ "]"
+  | (_, SBinop (_, e1, o, e2)) -> (str_of_sexpr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_sexpr e2)
+  | (_, SAssign (_, s, e)) -> s ^ " = " ^ (str_of_sexpr e)
+  | (_, SCall (_, s, el)) -> s ^ "(" ^ (String.concat ", " (List.map str_of_sexpr el)) ^ ")"
 
 let rec str_of_stmt = function
-  | Block(sl) -> "{\n" ^ (String.concat "" (List.map str_of_stmt sl)) ^ "}\n"
-  | Expr(e) -> (str_of_expr e) ^ ";\n"
-  | Break -> "break;\n"
-  | Continue -> "continue;\n"
-  | If(e, s) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
-  | IfElse(e, s1, s2) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s1) ^
+  | Block (_, sl) -> "{\n" ^ (String.concat "" (List.map str_of_stmt sl)) ^ "}\n"
+  | Expr (_, e) -> (str_of_expr e) ^ ";\n"
+  | Break (_) -> "break;\n"
+  | Continue (_) -> "continue;\n"
+  | If (_, e, s) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
+  | IfElse (_, e, s1, s2) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s1) ^
     "else\n" ^ (str_of_stmt s2)
-  | While(e, s) -> "while (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
-  | Return(Some e) -> "return " ^ (str_of_expr e) ^ ";\n"
-  | Return(None) -> "return;\n"
+  | While (_, e, s) -> "while (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
+  | Return (_, Some e) -> "return " ^ (str_of_expr e) ^ ";\n"
+  | Return (_, None) -> "return;\n"
 
 let rec str_of_sstmt = function
-  | SBlock(sl) -> "{\n" ^ (String.concat "" (List.map str_of_sstmt sl)) ^ "}\n"
-  | SExpr(e) -> (str_of_sexpr e) ^ ";\n"
-  | SBreak -> "break;\n"
-  | SContinue -> "continue;\n"
-  | SIf(e, s) -> "if (" ^ (str_of_sexpr e) ^ ")\n" ^ (str_of_sstmt s)
-  | SIfElse(e, s1, s2) -> "if (" ^ (str_of_sexpr e) ^ ")\n" ^ (str_of_sstmt s1) ^
+  | SBlock (_, sl) -> "{\n" ^ (String.concat "" (List.map str_of_sstmt sl)) ^ "}\n"
+  | SExpr (_, e) -> (str_of_sexpr e) ^ ";\n"
+  | SBreak _ -> "break;\n"
+  | SContinue _ -> "continue;\n"
+  | SIf (_, e, s) -> "if (" ^ (str_of_sexpr e) ^ ")\n" ^ (str_of_sstmt s)
+  | SIfElse (_, e, s1, s2) -> "if (" ^ (str_of_sexpr e) ^ ")\n" ^ (str_of_sstmt s1) ^
     "else\n" ^ (str_of_sstmt s2)
-  | SWhile(e, s) -> "while (" ^ (str_of_sexpr e) ^ ")\n" ^ (str_of_sstmt s)
-  | SReturn(Some e) -> "return " ^ (str_of_sexpr e) ^ ";\n"
-  | SReturn(None) -> "return;\n"
+  | SWhile (_, e, s) -> "while (" ^ (str_of_sexpr e) ^ ")\n" ^ (str_of_sstmt s)
+  | SReturn (_, Some e) -> "return " ^ (str_of_sexpr e) ^ ";\n"
+  | SReturn (_, None) -> "return;\n"
 
 let str_of_func f =
   f.name ^ "(" ^ (String.concat ", " f.args) ^

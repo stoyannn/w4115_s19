@@ -1,38 +1,64 @@
+(*
+ * JIJO AST nodes.
+ *)
+
+(* (line, number) position in souce file *)
+type pos = (int * int)
+
 type bop =
-  | Add | Sub | Mult | Div
-  | Concat
-  | Equal | Nequal | Less | Lequal | Grtr | Grequal
-  | And | Or | Is
-  | Ind
-  | Dot | DotDot
+  | Add of pos
+  | Sub  of pos
+  | Mult of pos
+  | Div of pos
+     
+  | Concat of pos
+
+  | Equal of pos
+  | Nequal of pos
+  | Less of pos
+  | Lequal of pos
+  | Grtr of pos
+  | Grequal of pos
+
+  | And of pos
+  | Or of pos
+
+  | Is of pos
+
+  | Ind of pos
+  | Dot of pos
+  | DotDot of pos
 
 type uop =
-  | Neg | Not | Len
+  | Neg of pos
+  | Not of pos
+  | Len of pos
 
 type expr =
-  | Nullit
-  | Boolit of bool
-  | Numlit of float
-  | Strlit of string
-  | Objlit of (string * expr) list
-  | Arrlit of expr list
-  | Id of string
-  | Unop of expr * uop
-  | Binop of expr * bop * expr
-  | Assign of string * expr
-  | Call of string * expr list
+  | Nullit of pos
+  | Boolit of pos * bool
+  | Numlit of pos * float
+  | Strlit of pos * string
+  | Objlit of pos * (string * expr) list
+  | Arrlit of pos * expr list
+  | Id of pos * string
+  | Unop of pos * expr * uop
+  | Binop of pos * expr * bop * expr
+  | Assign of pos * string * expr
+  | Call of pos * string * expr list
 
 type stmt =
-  | Block of stmt list
-  | Expr of expr
-  | Break
-  | Continue
-  | If of expr * stmt
-  | IfElse of expr * stmt * stmt
-  | While of expr * stmt
-  | Return of expr option
+  | Block of pos * stmt list
+  | Expr of pos * expr
+  | Break of pos
+  | Continue of pos
+  | If of pos * expr * stmt
+  | IfElse of pos * expr * stmt * stmt
+  | While of pos * expr * stmt
+  | Return of pos * expr option
 
 type func = {
+  pos: pos;
   name: string;
   args: string list;
   body: stmt list;
