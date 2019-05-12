@@ -5,23 +5,26 @@
 open Jijoast
 open Jijosast
 
+(* (line, char), function, message *)
+exception SemantError of pos * string * string
+
 module StringMap = Map.Make(String)
 
+
+(* parsing context *)
 type context = {
-  parent: context option;
-  fname: string;
-  funtab: func StringMap.t;
-  symtab: typ option StringMap.t;
-  breakable: bool; 
-  accessible: bool;
-  finished: bool;
+  parent: context option; (* enclosing (parent) context *)
+  fname: string; (* current function name *)
+  funtab: func StringMap.t; (* all functions in program *)
+  symtab: typ option StringMap.t; (* variables already initialized in current function *)
+  breakable: bool; (* if break/continue valid in current block (ex. in 'while' *)
+  accessible: bool; (* if an id can be resolved at runtime, w/o symtab (ex. object.id) *)
+  finished: bool; (* if uncondl break/continue/return already encountered in current block *)
 }
+
 
 let sprogram_of_program program = 
 
-let fail name msg =
-  Failure (name ^ ": " ^ msg)
-in
 
 let is_typ t typ = match t with
   | Some x when x = typ -> true
@@ -33,16 +36,15 @@ let is_typ_eq t1 t2 = match (t1, t2) with
   | (_, None) | (None, _) -> true
   | _ -> (t1 = t2)
 in
-
 let is_expr_id e = match e with
   | Id _ -> true
   | _ -> false
 in
-
 let is_expr_call e = match e with
   | Call _ -> true
   | _ -> false
 in
+
 
 let rec sexpr_of_expr cont expr =
   let sexpr_list_of_expr_list cont el =
@@ -61,13 +63,13 @@ let rec sexpr_of_expr cont expr =
     in
     List.fold_left add_field (cont, []) fl
   in
-  let type_of_id id =
+  let type_of_id pos id =
     if cont.accessible then
       None
     else
       try StringMap.find id cont.symtab
       with Not_found ->
-        raise (fail cont.fname ("variable " ^ id ^ " may not have been initialized"))
+        raise (SemantError (pos, cont.fname, "variable " ^ id ^ " may not have been initialized"))
   in
   match expr with
   | Nullit (p) -> (cont, (Some Null, SNullit p))
@@ -82,7 +84,7 @@ let rec sexpr_of_expr cont expr =
     let (cont', el') = sexpr_list_of_expr_list cont el
     in
     (cont', (Some Array, SArrlit (p, List.rev el')))
-  | Id (p, x) -> (cont, (type_of_id x, SId (p, x)))
+  | Id (p, x) -> (cont, (type_of_id p x, SId (p, x)))
   | Unop (p, e, o) as x ->
     let (cont', (t, e')) = sexpr_of_expr cont e
     in
@@ -90,7 +92,8 @@ let rec sexpr_of_expr cont expr =
       | Neg (_) when is_typ t Number -> Some Number
       | Not (_) when is_typ t Bool -> Some Bool
       | Len (_) when (is_typ t String) || (is_typ t Array) -> Some Number
-      | _ -> raise (fail cont.fname ("unary operator " ^ (Jijohelp.str_of_uop o) ^
+      | _ -> raise (SemantError (p, cont.fname,
+        "unary operator " ^ (Jijohelp.str_of_uop o) ^
         " cannot be applied to type " ^ (Jijohelp.str_of_typ t) ^
         " in expression: " ^ (Jijohelp.str_of_expr x)))
     in
@@ -119,7 +122,8 @@ let rec sexpr_of_expr cont expr =
       | Ind (_) when (is_typ t1 Array) && (is_typ t2 Number) -> None
       | Dot (_) when (is_expr_id e2) -> None
       | DotDot (_) when (is_expr_call e2) -> None
-      | _ -> raise (fail cont.fname ("binary operator " ^ (Jijohelp.str_of_bop o) ^
+      | _ -> raise (SemantError(p, cont.fname,
+        "binary operator " ^ (Jijohelp.str_of_bop o) ^
         " cannot be applied to types " ^ (Jijohelp.str_of_typ t1) ^
         " and " ^ (Jijohelp.str_of_typ t2) ^
         " in expression: " ^ (Jijohelp.str_of_expr x)))
@@ -134,19 +138,19 @@ let rec sexpr_of_expr cont expr =
   | Call (p, f, el) ->
     let func = 
       try StringMap.find f cont.funtab
-      with Not_found -> raise (fail cont.fname ("undefined function: " ^ f))
+      with Not_found -> raise (SemantError(p, cont.fname, "undefined function: " ^ f))
     in
     let argc = List.length func.args
     in
     if List.length el != argc then
-      raise (fail cont.fname ("incorrect number of arguments in call: " ^ f))
+      raise (SemantError (p, cont.fname, "incorrect number of arguments in call: " ^ f))
     else
       let (cont', el') = sexpr_list_of_expr_list cont el
       in
       (cont', (None, SCall(p, f, (List.rev el'))))
 in
 
-(* OK *)
+
 let rec sstmt_list_of_stmt_list cont sl =
   match sl with
   | [] -> []
@@ -154,14 +158,15 @@ let rec sstmt_list_of_stmt_list cont sl =
   | s :: sl ->
     let (cont', s') = sstmt_of_stmt cont s
     in s' :: sstmt_list_of_stmt_list cont' sl
-
-(* OK *)
 and sstmt_of_stmt cont stmt =
-  let fail_break s = fail cont.fname ("statement cannot be used outside of a loop: " ^
-    (Jijohelp.str_of_stmt s))
+  let fail_break s = 
+     SemantError (Jijohelp.pos_of_stmt s, cont.fname,
+       "statement cannot be used outside of a loop: " ^ (Jijohelp.str_of_stmt s))
   in
-  let fail_cond t s = fail cont.fname ("expression of type " ^ (Jijohelp.str_of_typ t) ^
-    " cannot be used as condition in: " ^ (Jijohelp.str_of_stmt s))
+  let fail_cond t s =
+     SemantError (Jijohelp.pos_of_stmt s, cont.fname,
+      "expression of type " ^ (Jijohelp.str_of_typ t) ^
+      " cannot be used as condition in: " ^ (Jijohelp.str_of_stmt s))
   in
   match stmt with
   | Block (p, sl) -> 
@@ -216,11 +221,13 @@ and sstmt_of_stmt cont stmt =
   | Return (p, None) -> ({cont with finished = true}, SReturn (p, None))
 in
 
-(* OK *)
+
 let sfunc_of_func cont func =
   let add_arg m a =
-    if StringMap.mem a m then raise (fail func.name ("duplicate argument: " ^ a))
-    else StringMap.add a None m
+    if StringMap.mem a m then
+      raise (SemantError (func.pos, func.name, "duplicate argument: " ^ a))
+    else
+      StringMap.add a None m
   in
   let symtab' = List.fold_left add_arg StringMap.empty func.args
   in
@@ -234,11 +241,13 @@ let sfunc_of_func cont func =
   }
 in
 
-(* OK *)
+
 let create_init_cont program =
   let add_func m f =
-    if StringMap.mem f.name m then raise (fail f.name "duplicate function")
-    else StringMap.add f.name f m
+    if StringMap.mem f.name m then
+      raise (SemantError (f.pos, f.name, "duplicate function"))
+    else
+      StringMap.add f.name f m
   in
   {
     parent = None;
@@ -250,6 +259,7 @@ let create_init_cont program =
     finished = false;
   }
 in
+
 
 {
   sfuncs = List.map (sfunc_of_func (create_init_cont program)) program.funcs

@@ -60,6 +60,19 @@ let rec str_of_expr = function
   | Assign (_, s, e) -> s ^ " = " ^ (str_of_expr e)
   | Call (_, s, el) -> s ^ "(" ^ (String.concat ", " (List.map str_of_expr el)) ^ ")"
 
+let pos_of_expr = function
+  | Nullit p -> p
+  | Boolit (p, _) -> p
+  | Numlit (p, _) -> p
+  | Strlit (p, _) -> p
+  | Objlit (p, _) -> p
+  | Arrlit (p, _) -> p
+  | Id (p, _) -> p
+  | Unop (p, _, _) -> p
+  | Binop (p, _, _, _) -> p
+  | Assign (p, _, _) -> p
+  | Call (p, _, _) -> p
+
 let rec str_of_sexpr = function
   | (_, SNullit _) -> "null"
   | (_, SBoolit (_, true)) -> "true"
@@ -85,14 +98,24 @@ let rec str_of_sexpr = function
 let rec str_of_stmt = function
   | Block (_, sl) -> "{\n" ^ (String.concat "" (List.map str_of_stmt sl)) ^ "}\n"
   | Expr (_, e) -> (str_of_expr e) ^ ";\n"
-  | Break (_) -> "break;\n"
-  | Continue (_) -> "continue;\n"
+  | Break _ -> "break;\n"
+  | Continue _ -> "continue;\n"
   | If (_, e, s) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
   | IfElse (_, e, s1, s2) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s1) ^
     "else\n" ^ (str_of_stmt s2)
   | While (_, e, s) -> "while (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
   | Return (_, Some e) -> "return " ^ (str_of_expr e) ^ ";\n"
   | Return (_, None) -> "return;\n"
+
+let pos_of_stmt = function
+  | Block (p, _) -> p
+  | Expr (p, _) -> p
+  | Break p -> p
+  | Continue p -> p
+  | If (p, _, _) -> p
+  | IfElse (p, _, _, _) -> p
+  | While (p, _, _) -> p
+  | Return (p, _) -> p
 
 let rec str_of_sstmt = function
   | SBlock (_, sl) -> "{\n" ^ (String.concat "" (List.map str_of_sstmt sl)) ^ "}\n"
