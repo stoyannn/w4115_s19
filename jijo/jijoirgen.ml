@@ -24,45 +24,25 @@ type context = {
 let llmodule_of_sprogram sprogram =
 
 
-(* runtime constants *)
-let const_void    = L.const_int i8_t 0
-and const_null    = L.const_int i8_t 1
-and const_boolean = L.const_int i8_t 2
-and const_number  = L.const_int i8_t 3
-and const_string  = L.const_int i8_t 4
-and const_object  = L.const_int i8_t 5
-and const_array   = L.const_int i8_t 6
-and const_true    = L.const_float double_t 1.0
-and const_false   = L.const_float double_t 0.0
-in
-
-
-let build_sfunc cont sfunc =
-  cont
-in
-
-
-let create_init_cont sprogram =
-  let cont = L.global_context ()
+let cont =
+  let c = L.global_context ();
   in
-  let modl = L.create_module cont "Jijo"
-  and i8_t = L.i8_type cont
-  and double_t = L.double_type cont
+  let m = L.create_module c "Jijo";
+  and i8_t = L.i8_type c
+  and double_t = L.double_type c
   in
-  let val_t = L.struct_type cont [| i8_t; double_t |]
+  let val_t = L.struct_type c [| i8_t; double_t |]
   in
-
-  let add_sfunc m f =
+  let add_sfunc map f =
     let args_t = Array.of_list (List.map (fun _ -> val_t) f.sargs)
     in
     let func_t = L.function_type val_t args_t
     in
-    StringMap.add f.sname (L.define_function f.sname func jijo, f) m
-in
-
+    StringMap.add f.sname (L.define_function f.sname func_t m, f) map
+  in
   {
-    c = cont;
-    m = modl;
+    c = c;
+    m = m;
     i8_t = i8_t;
     double_t = double_t;
     val_t = val_t;
@@ -71,11 +51,24 @@ in
 in
 
 
-let init_cont = create_init_cont sprogram
+(* runtime constants *)
+let const_void    = L.const_int cont.i8_t 0
+and const_null    = L.const_int cont.i8_t 1
+and const_boolean = L.const_int cont.i8_t 2
+and const_number  = L.const_int cont.i8_t 3
+and const_string  = L.const_int cont.i8_t 4
+and const_object  = L.const_int cont.i8_t 5
+and const_array   = L.const_int cont.i8_t 6
+and const_true    = L.const_float cont.double_t 1.0
+and const_false   = L.const_float cont.double_t 0.0
 in
 
-let end_cont = List.fold_Left (fun c f -> build_sfunc f) init_cont sprogram.sfuncs
+
+let build_sfunc sfunc =
+  ()
 in
 
-end_cont.m
+
+List.iter build_sfunc sprogram.sfuncs;
+cont.m
 
