@@ -307,6 +307,6 @@ if List.length main.args != 0 then
     "function 'main' must not have any arguments"))
 else
   {
-    sfuncs = List.map (sfunc_of_func (create_init_cont program)) program.funcs
+    sfuncs = List.map (sfunc_of_func init_cont) program.funcs
   }
 
