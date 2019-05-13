@@ -18,13 +18,13 @@ let parse_buf lexbuf action =
   try
     match action with
     | Ast ->
-      OK (Jijohelp.str_of_program
+      Ok (Jijohelp.str_of_program
            (Jijoparse.program Jijoscan.token lexbuf))
     | Sast ->
       Ok (Jijohelp.str_of_sprogram
            (Jijosemant.sprogram_of_program
              (Jijoparse.program Jijoscan.token lexbuf)))
-    | LLvmir ->
+    | Llvmir ->
       Ok (Llvm.string_of_llmodule
            (Jijoirgen.llmodule_of_sprogram
              (Jijosemant.sprogram_of_program
