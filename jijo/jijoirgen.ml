@@ -206,12 +206,19 @@ let build_sfunc sfunc =
       (cont, L.const_struct g_cont [| g_str; v |])
     | SObjlit (_, fl) -> (cont, g_obj_z)
     | SArrlit (_, el) -> (cont, g_arr_z)
-    | SId (_, s) ->
-      let v = match (get_var cont s) with
-      | Some x -> (cont, L.build_load x s cont.builder)
-      | None -> (cont, g_void_z)
+    | SId (_, s) -> 
+      let v = match cont.this with
+      | Some x ->
+        let i = L.const_int g_i32 (StringMap.find s g_idtab)
+        in
+        L.build_call g_binop_get_index [| x; i |] "_binop_get_index_res" cont.builder
+      | None -> (
+        match (get_var cont s) with
+        | Some x -> L.build_load x s cont.builder
+        | None -> g_void_z
+      )
       in
-      v
+      (cont, v)
     | SUnop (_, e, op) ->
       let (cont', e') = build_sexpr cont e
       in
