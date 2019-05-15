@@ -235,7 +235,7 @@ struct _value _binop_get_composite(struct _value *op1, int index)
   return ret;
 }
 
-struct _value _binop_get_by_value(struct _value *op1, struct _value *op2)
+struct _value _binop_index(struct _value *op1, struct _value *op2)
 {
   if (op1->type == TYP_STRING) {
     _binop_typecheck("[", op1, TYP_STRING, op2, TYP_NUMBER);
