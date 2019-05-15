@@ -42,33 +42,63 @@ let g_funtab =
   in
   List.fold_left add_sfunc StringMap.empty sprogram.sfuncs;
 
-and g_strtab =
-  let rec add_sexpr m ((_, sx) : sexpr) =
+and (g_strtab, g_idtab) =
+  let rec add_sexpr (sm, im) ((_, sx) : sexpr) =
+    let add_id m s =
+      if not (StringMap.mem s m) then
+        (StringMap.add s (StringMap.cardinal m) m)
+      else
+        m
+    in
     match sx with
-    | SStrlit (_, s) when not (StringMap.mem s m) ->
+    | SStrlit (_, s) when not (StringMap.mem s sm) ->
       let v = (L.define_global "_const_str" (L.const_stringz g_cont s) g_mod)
       in
-      StringMap.add s v m
-    | SObjlit (_, fl) -> List.fold_left add_sexpr m (List.map snd fl)
-    | SArrlit (_, el) -> List.fold_left add_sexpr m el
-    | SUnop (_, e, _) -> add_sexpr m e
-    | SBinop (_, e1, _, e2) -> add_sexpr (add_sexpr m e1) e2
-    | SAssign (_, _, e) -> add_sexpr m e
-    | SCall (_, _, el) -> List.fold_left add_sexpr m el
-    | _ -> m
-  and add_sstmt m sstmt =
+      (StringMap.add s v sm, im)
+    | SObjlit (_, fl) ->
+      let im' = List.fold_left add_id im (List.map fst fl)
+      in
+      List.fold_left add_sexpr (sm, im') (List.map snd fl)
+    | SArrlit (_, el) -> List.fold_left add_sexpr (sm, im) el
+    | SId (_, s) ->
+      let im' = add_id im s
+      in
+      (sm, im')
+    | SUnop (_, e, _) -> add_sexpr (sm, im) e
+    | SBinop (_, e1, _, e2) ->
+      let (sm', im') = add_sexpr (sm, im) e1
+      in
+      add_sexpr (sm', im') e2
+    | SAssign (_, s, e) ->
+      let (sm', im') = add_sexpr (sm, im) e
+      in
+      (sm', add_id im' s)
+    | SCall (_, _, el) -> List.fold_left add_sexpr (sm, im) el
+    | _ -> (sm, im)
+  and add_sstmt (sm, im) sstmt =
     match sstmt with
-    | SBlock (_, sl) -> List.fold_left add_sstmt m sl
-    | SExpr (_, e) -> add_sexpr m e
-    | SIf (_, e, _) -> add_sexpr m e
-    | SIfElse (_, e, _, _) -> add_sexpr m e
-    | SWhile (_, e, _) -> add_sexpr m e
-    | SReturn (_, Some e) -> add_sexpr m e
-    | _ -> m
-  and add_sfunc m sfunc =
-    List.fold_left add_sstmt m sfunc.sbody
+    | SBlock (_, sl) -> List.fold_left add_sstmt (sm, im) sl
+    | SExpr (_, e) -> add_sexpr (sm, im) e
+    | SIf (_, e, s) -> 
+      let (sm', im') = add_sexpr (sm, im) e
+      in
+      add_sstmt (sm', im') s
+    | SIfElse (_, e, s1, s2) ->
+      let (sm', im') = add_sexpr (sm, im) e
+      in
+      let (sm'', im'') = add_sstmt (sm', im') s1
+      in
+      add_sstmt (sm'', im'') s2
+    | SWhile (_, e, s) ->
+      let (sm', im') = add_sexpr (sm, im) e
+      in
+      add_sstmt (sm', im') s
+    | SReturn (_, Some e) -> add_sexpr (sm, im) e
+    | _ -> (sm, im)
+  and add_sfunc (sm, im) sfunc =
+    List.fold_left add_sstmt (sm, im) sfunc.sbody
   in
-  List.fold_left add_sfunc StringMap.empty sprogram.sfuncs
+  List.fold_left add_sfunc (StringMap.empty, StringMap.empty) sprogram.sfuncs
 in
 
 let g_void = L.const_int g_i8 0
