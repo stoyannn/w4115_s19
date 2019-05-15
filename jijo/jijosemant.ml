@@ -15,7 +15,6 @@ module StringMap = Map.Make(String)
 type context = {
   parent: context option; (* enclosing (parent) context *)
   fname: string option; (* current function name *)
-  funtab: func StringMap.t; (* all functions in program *)
   symtab: typ option StringMap.t; (* variables already initialized in current function *)
   breakable: bool; (* if break/continue valid in current block (ex. in 'while' *)
   accessible: bool; (* if an id can be resolved at runtime, w/o symtab (ex. object.id) *)
@@ -24,6 +23,18 @@ type context = {
 
 
 let sprogram_of_program program = 
+
+
+let g_funtab =
+  let add_func m f =
+    if StringMap.mem f.name m then
+      raise (SemantError (f.pos, Some f.name,
+        "duplicate function name '" ^ f.name ^ "'"))
+    else
+      StringMap.add f.name f m
+  in
+  List.fold_left add_func StringMap.empty program.funcs;
+in
 
 
 let is_typ t typ = match t with
@@ -76,7 +87,7 @@ let rec sexpr_of_expr cont expr =
       with Not_found ->
         match cont.parent with
         | Some p -> typ_of_id p pos id
-        | _ -> raise (SemantError (pos, cont.fname,
+        | None -> raise (SemantError (pos, cont.fname,
           "variable '" ^ id ^ "' may not have been initialized"))
   in
 
@@ -149,7 +160,7 @@ let rec sexpr_of_expr cont expr =
     (cont'', (t, SAssign(p, s, (t, e'))))
   | Call (p, f, el) ->
     let func = 
-      try StringMap.find f cont.funtab
+      try StringMap.find f g_funtab
       with Not_found -> raise (SemantError(p, cont.fname,
         "undefined function name '" ^ f ^ "'"))
     in
@@ -199,12 +210,12 @@ and sstmt_of_stmt cont stmt =
       let (cont', e') = sexpr_of_expr cont e
       in
       (cont', SExpr (p, e'))
-    | Break (p) as x -> 
+    | Break p as x -> 
       if cont.breakable then
         ({cont with finished = true}, SBreak p)
       else
         raise (fail_break x)
-    | Continue (p) as x -> 
+    | Continue p as x -> 
       if cont.breakable then
         ({cont with finished = true}, SContinue p)
       else
@@ -250,7 +261,10 @@ in
 let sfunc_of_func cont func =
 
   let add_arg m a =
-    if StringMap.mem a m then
+    if "this" = a then
+      raise (SemantError (func.pos, Some func.name,
+        "forbidden argument name '" ^ a ^ "'"))
+    else if StringMap.mem a m then
       raise (SemantError (func.pos, Some func.name,
         "duplicate argument name '" ^ a ^ "'"))
     else
@@ -272,39 +286,30 @@ let sfunc_of_func cont func =
 in
 
 
-let create_init_cont program =
-  let add_func m f =
-    if StringMap.mem f.name m then
-      raise (SemantError (f.pos, Some f.name,
-        "duplicate function name '" ^ f.name ^ "'"))
-    else
-      StringMap.add f.name f m
-  in
-
-  {
-    parent = None;
-    fname = None;
-    funtab = List.fold_left add_func StringMap.empty program.funcs;
-    symtab = StringMap.empty;
-    breakable = false;
-    accessible = false;
-    finished = false;
-  }
+let init_cont =
+{
+  parent = None;
+  fname = None;
+  symtab = StringMap.empty;
+  breakable = false;
+  accessible = false;
+  finished = false;
+}
 in
 
-
-let init_cont = create_init_cont program
-in
-
-let main = 
-  try StringMap.find "main" init_cont.funtab
+let _ =
+  if StringMap.mem "main" g_funtab then
+    raise (SemantError ((1, 1), init_cont.fname,
+      "forbidden function name 'main'"))
+and jijo = 
+  try StringMap.find "jijo" g_funtab
   with Not_found -> raise (SemantError ((1, 1), init_cont.fname,
-    "function 'main' not defined"))
+    "entry function 'jijo' not defined"))
 in
 
-if List.length main.args != 0 then
-  raise (SemantError (main.pos, init_cont.fname,
-    "function 'main' must not have any arguments"))
+if List.length jijo.args != 0 then
+  raise (SemantError (jijo.pos, init_cont.fname,
+    "entry function 'jijo' must not have any arguments"))
 else
   {
     sfuncs = List.map (sfunc_of_func init_cont) program.funcs
