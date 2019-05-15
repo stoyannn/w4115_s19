@@ -299,7 +299,7 @@ let build_sfunc sfunc =
   let lcont' = build_sstmt lcont (SBlock (sfunc.spos, sfunc.sbody))
   in
 
-  add_terminal lcont' (L.build_ret g_void)
+  add_terminal lcont' (L.build_ret g_void_z)
 
 in
 
