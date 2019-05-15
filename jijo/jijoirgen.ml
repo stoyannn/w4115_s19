@@ -126,6 +126,7 @@ let g_printf =
 in
 
 let g_binop_t = L.function_type g_val [| g_val; g_val |]
+and g_index_t = L.function_type g_val [| g_val; g_i32 |]
 and g_unop_t = L.function_type g_val [| g_val |]
 in
 let g_binop_plus = L.declare_function "_binop_plus" g_binop_t g_mod
@@ -143,7 +144,8 @@ and g_binop_and = L.declare_function "_binop_and" g_binop_t g_mod
 and g_binop_or = L.declare_function "_binop_or" g_binop_t g_mod
 and g_unop_not = L.declare_function "_unop_not" g_unop_t g_mod
 and g_binop_is = L.declare_function "_binop_is" g_binop_t g_mod
-and g_binop_index = L.declare_function "_binop_index" g_binop_t g_mod
+and g_binop_get_value = L.declare_function "_binop_get_value" g_binop_t g_mod
+and g_binop_get_index = L.declare_function "_binop_get_index" g_index_t g_mod
 and g_unop_len = L.declare_function "_unop_len" g_unop_t g_mod
 and g_binop_concat = L.declare_function "_binop_concat" g_binop_t g_mod
 in
@@ -248,7 +250,7 @@ let build_sfunc sfunc =
         | A.And _ -> L.build_call g_binop_and arg "_binop_and_res" bld
         | A.Or _ -> L.build_call g_binop_or arg "_binop_or_res" bld
         | A.Is _ -> L.build_call g_binop_is arg "_binop_is_res" bld
-        | A.Ind _ -> L.build_call g_binop_index arg "_binop_index_res" bld
+        | A.Ind _ -> L.build_call g_binop_get_index arg "_binop_get_index_res" bld
         | A.Dot _ -> e2'
         | A.DotDot _ -> e2'
       in

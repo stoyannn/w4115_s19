@@ -213,7 +213,7 @@ struct _value _binop_get_string(struct _value *op1, int index)
   return ret;
 }
 
-struct _value _binop_get_composite(struct _value *op1, int index)
+struct _value _binop_get_index(struct _value *op1, int index)
 {
   struct _value ret;
   memset(&ret, 0, sizeof(ret));
@@ -235,7 +235,7 @@ struct _value _binop_get_composite(struct _value *op1, int index)
   return ret;
 }
 
-struct _value _binop_index(struct _value *op1, struct _value *op2)
+struct _value _binop_get_value(struct _value *op1, struct _value *op2)
 {
   if (op1->type == TYP_STRING) {
     _binop_typecheck("[", op1, TYP_STRING, op2, TYP_NUMBER);
@@ -244,11 +244,11 @@ struct _value _binop_index(struct _value *op1, struct _value *op2)
 
   if (op1->type == TYP_OBJECT) {
     _binop_typecheck(".", op1, TYP_OBJECT, op2, TYP_NUMBER);
-    return _binop_get_composite(op1, (int) op2->value);
+    return _binop_get_index(op1, (int) op2->value);
   }
 
   _binop_typecheck("[", op1, TYP_ARRAY, op2, TYP_NUMBER);
-  return _binop_get_composite(op1, (int) op2->value);
+  return _binop_get_index(op1, (int) op2->value);
 }
 
 
