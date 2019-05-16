@@ -1,4 +1,5 @@
 open Lexing
+open Printf
 
 type action = Ast | Sast | Llvmir
 
@@ -52,16 +53,26 @@ let _ =
     ]
   in
 
-  let usage_msg = "usage: ./jijo.native [-a|-s|-l] [file.jj]"
+  let usage_msg = "usage: ./jijo.native [-a|-s|-l] [in_file.jj] [out_file.ll]"
   in
-  let channel = ref stdin
+  let inc = ref stdin
   in
-  Arg.parse speclist (fun file -> channel := open_in file) usage_msg;
+  let outc = ref stdout
+  in
+  let errc = ref stderr
+  in
+  let open_file f =
+    if !inc = stdin then
+      inc := open_in f
+    else
+      outc := open_out f
+  in
+  Arg.parse speclist (open_file) usage_msg;
 
-  let lexbuf = Lexing.from_channel !channel
+  let lexbuf = Lexing.from_channel !inc
   in
 
   match (parse_buf lexbuf !action) with
-  | Ok res -> print_endline res;
-  | Error (ln, ch, func, msg) -> prerr_endline (str_of_error ln ch func msg)
+  | Ok res -> fprintf !outc "%s\n" res;
+  | Error (ln, ch, func, msg) -> fprintf !errc "%s\n" (str_of_error ln ch func msg)
 
