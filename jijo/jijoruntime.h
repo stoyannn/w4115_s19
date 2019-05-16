@@ -9,6 +9,7 @@
 #define ERR_TYPE 101
 #define ERR_VAL  102
 #define ERR_MEM  103
+#define ERR_BUG  104
 
 #define TRUE  1.0
 #define FALSE 0.0

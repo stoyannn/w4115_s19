@@ -1,4 +1,5 @@
 #include <execinfo.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,25 +11,6 @@
 /*
  * Support functions
  */
-
-char* _type_str(struct _value *val) {
-  switch(val->type) {
-    case TYP_VOID:
-      return "void";
-    case TYP_BOOLEAN:
-      return "boolean";
-    case TYP_NUMBER:
-      return "number";
-    case TYP_STRING:
-      return "string";
-    case TYP_ARRAY:
-      return "array";
-    case TYP_OBJECT:
-      return "object";
-    default:
-      return "unknown";
-  }
-}
 
 void _fatal(int code, const char *format, ...)
 {
@@ -50,17 +32,39 @@ void _fatal(int code, const char *format, ...)
   exit(code);
 }
 
-void _binop_typecheck(char *op, struct _value *op1, unsigned char typ1,
-	struct _value *op2, unsigned char typ2)
+char* _type_str(struct _value val) {
+  switch(val.type) {
+    case TYP_VOID:
+      return "void";
+    case TYP_NULL:
+      return "null";
+    case TYP_BOOLEAN:
+      return "boolean";
+    case TYP_NUMBER:
+      return "number";
+    case TYP_STRING:
+      return "string";
+    case TYP_OBJECT:
+      return "object";
+    case TYP_ARRAY:
+      return "array";
+    default:
+      _fatal(ERR_BUG, "unknown type code: %d", val.type);
+    return "";
+  }
+}
+
+void _binop_typecheck(char *op, struct _value op1, unsigned char typ1,
+	struct _value op2, unsigned char typ2)
 {
-  if (op1->type != typ1 || op2->type != typ2) {
+  if (op1.type != typ1 || op2.type != typ2) {
     _fatal(ERR_TYPE, "wrong operand types: %s %s %s", _type_str(op1), op, _type_str(op2));
   }
 }
 
-void _unop_typecheck(char *preop, struct _value *op1, unsigned char typ1, char *postop)
+void _unop_typecheck(char *preop, struct _value op1, unsigned char typ1, char *postop)
 {
-  if (op1->type != typ1) {
+  if (op1.type != typ1) {
     _fatal(ERR_TYPE, "wrong operand type: %s %s %s", preop, _type_str(op1), postop);
   }
 }
@@ -70,34 +74,34 @@ void _unop_typecheck(char *preop, struct _value *op1, unsigned char typ1, char *
  * Arithmetic operators: +, -, *, /, unary -
  */
 
-struct _value _binop_plus(struct _value *op1, struct _value *op2)
+struct _value _binop_plus(struct _value op1, struct _value op2)
 {
   _binop_typecheck("+", op1, TYP_NUMBER, op2, TYP_NUMBER);
-  return (struct _value) {op1->type, op1->value + op2->value};
+  return (struct _value) {op1.type, op1.value + op2.value};
 }
 
-struct _value _binop_minus(struct _value *op1, struct _value *op2)
+struct _value _binop_minus(struct _value op1, struct _value op2)
 {
   _binop_typecheck("-", op1, TYP_NUMBER, op2, TYP_NUMBER);
-  return (struct _value) {op1->type, op1->value - op2->value};
+  return (struct _value) {op1.type, op1.value - op2.value};
 }
 
-struct _value _binop_mult(struct _value *op1, struct _value *op2)
+struct _value _binop_mult(struct _value op1, struct _value op2)
 {
   _binop_typecheck("*", op1, TYP_NUMBER, op2, TYP_NUMBER);
-  return (struct _value) {op1->type, op1->value * op2->value};
+  return (struct _value) {op1.type, op1.value * op2.value};
 }
 
-struct _value _binop_div(struct _value *op1, struct _value *op2)
+struct _value _binop_div(struct _value op1, struct _value op2)
 {
   _binop_typecheck("/", op1, TYP_NUMBER, op2, TYP_NUMBER);
-  return (struct _value) {op1->type, op1->value / op2->value};
+  return (struct _value) {op1.type, op1.value / op2.value};
 }
 
-struct _value _unop_uminus(struct _value *op1)
+struct _value _unop_uminus(struct _value op1)
 {
   _unop_typecheck("-", op1, TYP_NUMBER, "");
-  return (struct _value) {op1->type, -(op1->value)};
+  return (struct _value) {op1.type, -(op1.value)};
 }
 
 
@@ -105,50 +109,50 @@ struct _value _unop_uminus(struct _value *op1)
  * Comparison operators: ==, !=, <, <=, >, >=
  */
 
-struct _value _binop_equal(struct _value *op1, struct _value *op2)
+struct _value _binop_equal(struct _value op1, struct _value op2)
 {
-  if (op1->type != op2->type) {
+  if (op1.type != op2.type) {
     return (struct _value) {TYP_BOOLEAN, FALSE};
   }
-  if (op1->type == TYP_VOID || op1->type == TYP_NULL) {
+  if (op1.type == TYP_VOID || op1.type == TYP_NULL) {
     return (struct _value) {TYP_BOOLEAN, TRUE};
   }
-  if (op1->type == TYP_BOOLEAN) {
+  if (op1.type == TYP_BOOLEAN) {
     return (struct _value) {TYP_BOOLEAN,
-	    (op1->value != FALSE) == (op2-> value != FALSE) ? TRUE : FALSE};
+	    (op1.value != FALSE) == (op2.value != FALSE) ? TRUE : FALSE};
   }
-  return (struct _value) {TYP_BOOLEAN, op1->value == op2->value ? TRUE : FALSE};
+  return (struct _value) {TYP_BOOLEAN, op1.value == op2.value ? TRUE : FALSE};
 }
 
-struct _value _binop_nequal(struct _value *op1, struct _value *op2)
+struct _value _binop_nequal(struct _value op1, struct _value op2)
 {
   struct _value ret = _binop_equal(op1, op2);
   ret.value = ret.value != FALSE ? FALSE : TRUE;
   return ret;
 }
 
-struct _value _binop_less(struct _value *op1, struct _value *op2)
+struct _value _binop_less(struct _value op1, struct _value op2)
 {
   _binop_typecheck("<", op1, TYP_NUMBER, op2, TYP_NUMBER);
-  return (struct _value) {TYP_BOOLEAN, op1->value < op2->value ? TRUE : FALSE};
+  return (struct _value) {TYP_BOOLEAN, op1.value < op2.value ? TRUE : FALSE};
 }
 
-struct _value _binop_lequal(struct _value *op1, struct _value *op2)
+struct _value _binop_lequal(struct _value op1, struct _value op2)
 {
   _binop_typecheck("<=", op1, TYP_NUMBER, op2, TYP_NUMBER);
-  return (struct _value) {TYP_BOOLEAN, op1->value <= op2->value ? TRUE : FALSE};
+  return (struct _value) {TYP_BOOLEAN, op1.value <= op2.value ? TRUE : FALSE};
 }
 
-struct _value _binop_grtr(struct _value *op1, struct _value *op2)
+struct _value _binop_grtr(struct _value op1, struct _value op2)
 {
   _binop_typecheck(">", op1, TYP_NUMBER, op2, TYP_NUMBER);
-  return (struct _value) {TYP_BOOLEAN, op1->value > op2->value ? TRUE : FALSE};
+  return (struct _value) {TYP_BOOLEAN, op1.value > op2.value ? TRUE : FALSE};
 }
 
-struct _value _binop_grequal(struct _value *op1, struct _value *op2)
+struct _value _binop_grequal(struct _value op1, struct _value op2)
 {
   _binop_typecheck(">=", op1, TYP_NUMBER, op2, TYP_NUMBER);
-  return (struct _value) {TYP_BOOLEAN, op1->value >= op2->value ? TRUE : FALSE};
+  return (struct _value) {TYP_BOOLEAN, op1.value >= op2.value ? TRUE : FALSE};
 }
 
 
@@ -156,29 +160,29 @@ struct _value _binop_grequal(struct _value *op1, struct _value *op2)
  * Logical operators: &&, ||, !, is
  */
 
-struct _value _binop_and(struct _value *op1, struct _value *op2)
+struct _value _binop_and(struct _value op1, struct _value op2)
 {
   _binop_typecheck("&&", op1, TYP_BOOLEAN, op2, TYP_BOOLEAN);
   return (struct _value) {TYP_BOOLEAN,
-	  (op1->value != FALSE)  && (op2->value) != FALSE ? TRUE : FALSE};
+	  (op1.value != FALSE)  && (op2.value) != FALSE ? TRUE : FALSE};
 }
 
-struct _value _binop_or(struct _value *op1, struct _value *op2)
+struct _value _binop_or(struct _value op1, struct _value op2)
 {
   _binop_typecheck("||", op1, TYP_BOOLEAN, op2, TYP_BOOLEAN);
   return (struct _value) {TYP_BOOLEAN,
-	  (op1->value != FALSE) || (op2->value != FALSE) ? TRUE : FALSE};
+	  (op1.value != FALSE) || (op2.value != FALSE) ? TRUE : FALSE};
 }
 
-struct _value _unop_not(struct _value *op1)
+struct _value _unop_not(struct _value op1)
 {
   _unop_typecheck("!", op1, TYP_BOOLEAN, "");
-  return (struct _value) {TYP_BOOLEAN, op1->value != FALSE ? FALSE : TRUE};
+  return (struct _value) {TYP_BOOLEAN, op1.value != FALSE ? FALSE : TRUE};
 }
 
-struct _value _binop_is(struct _value *op1, struct _value *op2)
+struct _value _binop_is(struct _value op1, struct _value op2)
 {
-  return (struct _value) {TYP_BOOLEAN, op1->type == op2->type ? TRUE : FALSE};
+  return (struct _value) {TYP_BOOLEAN, op1.type == op2.type ? TRUE : FALSE};
 }
 
 
@@ -186,9 +190,9 @@ struct _value _binop_is(struct _value *op1, struct _value *op2)
  * Object field and array element access
  */
 
-struct _value _binop_get_string(struct _value *op1, int index)
+struct _value _binop_get_string(struct _value op1, int index)
 {
-  char *op1_cptr = *((char **) &(op1->value));
+  char *op1_cptr = *((char **) &(op1.value));
   size_t op1_len = strlen(op1_cptr);
 
   struct _value ret;
@@ -213,12 +217,12 @@ struct _value _binop_get_string(struct _value *op1, int index)
   return ret;
 }
 
-struct _value _binop_get_index(struct _value *op1, int index)
+struct _value _binop_get_index(struct _value op1, int index)
 {
   struct _value ret;
   memset(&ret, 0, sizeof(ret));
 
-  struct _composite *comp_ptr = *((struct _composite **) &(op1->value));
+  struct _composite *comp_ptr = *((struct _composite **) &(op1.value));
   if (index < 0 || index >= comp_ptr->length) {
     ret.type = TYP_NULL;
     return ret;
@@ -235,20 +239,20 @@ struct _value _binop_get_index(struct _value *op1, int index)
   return ret;
 }
 
-struct _value _binop_get_value(struct _value *op1, struct _value *op2)
+struct _value _binop_get_value(struct _value op1, struct _value op2)
 {
-  if (op1->type == TYP_STRING) {
+  if (op1.type == TYP_STRING) {
     _binop_typecheck("[", op1, TYP_STRING, op2, TYP_NUMBER);
-    return _binop_get_string(op1, (int) op2->value);
+    return _binop_get_string(op1, (int) op2.value);
   }
 
-  if (op1->type == TYP_OBJECT) {
+  if (op1.type == TYP_OBJECT) {
     _binop_typecheck(".", op1, TYP_OBJECT, op2, TYP_NUMBER);
-    return _binop_get_index(op1, (int) op2->value);
+    return _binop_get_index(op1, (int) op2.value);
   }
 
   _binop_typecheck("[", op1, TYP_ARRAY, op2, TYP_NUMBER);
-  return _binop_get_index(op1, (int) op2->value);
+  return _binop_get_index(op1, (int) op2.value);
 }
 
 
@@ -256,17 +260,17 @@ struct _value _binop_get_value(struct _value *op1, struct _value *op2)
  * Other operators: [?], ^
  */
 
-struct _value _unop_len(struct _value *op1)
+struct _value _unop_len(struct _value op1)
 {
-  if (op1->type == TYP_STRING) {
-    char *op1_cptr = *((char **) &(op1->value));
+  if (op1.type == TYP_STRING) {
+    char *op1_cptr = *((char **) &(op1.value));
     size_t op1_len = strlen(op1_cptr);
     return (struct _value) {TYP_NUMBER, (double) op1_len};
   }
 
   _unop_typecheck("", op1, TYP_ARRAY, "[?]");
 
-  struct _composite *comp_ptr = *((struct _composite **) &(op1->value));
+  struct _composite *comp_ptr = *((struct _composite **) &(op1.value));
   int max_index = 0;
   for (int i = 0; i < comp_ptr->length; ++i) {
     struct _element *elem = comp_ptr->values + i;
@@ -278,15 +282,15 @@ struct _value _unop_len(struct _value *op1)
   return (struct _value) {TYP_NUMBER, (double) max_index};
 }
 
-struct _value _binop_concat(struct _value *op1, struct _value *op2)
+struct _value _binop_concat(struct _value op1, struct _value op2)
 {
   _binop_typecheck("^", op1, TYP_STRING, op2, TYP_STRING);
 
-  const char *op1_cptr = *((char **) &(op1->value));
-  size_t op1_len = strlen(*((char **) &(op1->value)));
+  const char *op1_cptr = *((char **) &(op1.value));
+  size_t op1_len = strlen(*((char **) &(op1.value)));
 
-  const char *op2_cptr = *((char **) &(op2->value));
-  size_t op2_len = strlen(*((char **) &(op2->value)));
+  const char *op2_cptr = *((char **) &(op2.value));
+  size_t op2_len = strlen(*((char **) &(op2.value)));
 
   size_t buf_sz = op1_len + op2_len + 1;
   char *buf = calloc(op1_len + op2_len + 1, sizeof(char));
@@ -304,5 +308,57 @@ struct _value _binop_concat(struct _value *op1, struct _value *op2)
   memcpy(&(ret.value), &buf, sizeof(char *));
 
   return ret;
+}
+
+
+/*
+ * Built-ins: print, main
+ */
+
+int _func_print_composite(struct _value val)
+{
+  return fprintf(stdout, "composite");
+}
+
+int _func_print(struct _value val)
+{
+  switch (val.type) {
+    case TYP_VOID:
+      return 0;
+    case TYP_NULL:
+      return fprintf(stdout, "null");
+    case TYP_BOOLEAN:
+      return fprintf(stdout, "%s", val.value != FALSE ? "true" : "false");
+    case TYP_NUMBER:
+      if (ceil(val.value) == val.value) {
+        return fprintf(stdout, "%ld", (long) ceil(val.value));
+      }
+      return fprintf(stdout, "%f", val.value);
+    case TYP_STRING:
+      return fprintf(stdout, "%s", *((char **) &(val.value)));
+    case TYP_OBJECT:
+      return fprintf(stdout, "{ ")
+        //&& _func_print_composite(val)
+        && fprintf(stdout, " }");
+    case TYP_ARRAY:
+      return fprintf(stdout, "[ ")
+        //&& _func_print_composite(val)
+        && fprintf(stdout, " ]");
+    default:
+      _fatal(ERR_BUG, "unknown type code: %d", val.type);
+      return -1;
+  };
+}
+
+extern struct _value jijo(struct _value);
+
+int main(int argc, char**argv)
+{
+  struct _value this;
+  this.type = TYP_NULL;
+  this.type = 0.0;
+
+  struct _value ret = jijo(this);
+  return _func_print(ret);
 }
 

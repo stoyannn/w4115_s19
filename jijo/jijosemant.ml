@@ -25,9 +25,18 @@ type context = {
 let sprogram_of_program program = 
 
 
+let g_bintab =
+  let print = { pos = (1, 1); name = "print"; args = ["a"]; body = [] }
+  in
+  StringMap.add print.name print StringMap.empty
+in
+      
 let g_funtab =
   let add_func m f =
-    if StringMap.mem f.name m then
+    if StringMap.mem f.name g_bintab then
+      raise (SemantError (f.pos, Some f.name,
+        "forbidden function name: '" ^ f.name ^ "' is a built-in function"))
+    else if StringMap.mem f.name m then
       raise (SemantError (f.pos, Some f.name,
         "duplicate function name '" ^ f.name ^ "'"))
     else
@@ -160,9 +169,11 @@ let rec sexpr_of_expr cont expr =
     (cont'', (t, SAssign(p, s, (t, e'))))
   | Call (p, f, el) ->
     let func = 
-      try StringMap.find f g_funtab
-      with Not_found -> raise (SemantError(p, cont.fname,
-        "undefined function name '" ^ f ^ "'"))
+      try StringMap.find f g_bintab
+      with Not_found ->
+        try StringMap.find f g_funtab
+        with Not_found -> raise (SemantError(p, cont.fname,
+          "undefined function name '" ^ f ^ "'"))
     in
     let argc = List.length func.args
     in
@@ -300,7 +311,7 @@ in
 let _ =
   if StringMap.mem "main" g_funtab then
     raise (SemantError ((1, 1), init_cont.fname,
-      "forbidden function name 'main'"))
+      "forbidden function name: 'main' is a built-in function"))
 and jijo = 
   try StringMap.find "jijo" g_funtab
   with Not_found -> raise (SemantError ((1, 1), init_cont.fname,

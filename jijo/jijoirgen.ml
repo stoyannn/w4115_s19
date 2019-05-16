@@ -24,7 +24,7 @@ let llmodule_of_sprogram sprogram =
 
 let g_cont = L.global_context ()
 in
-let g_mod = L.create_module g_cont "Jijo"
+let g_mod = L.create_module g_cont "jijo"
 and g_i8 = L.i8_type g_cont
 and g_i32 = L.i32_type g_cont
 and g_dbl = L.double_type g_cont
@@ -119,15 +119,10 @@ and g_obj_z = L.const_struct g_cont [| g_str; L.const_float g_dbl 0.0 |]
 and g_arr_z = L.const_struct g_cont [| g_str; L.const_float g_dbl 0.0 |]
 in
 
-let g_printf =
-  let printf_t = L.var_arg_function_type g_i32 [| L.pointer_type g_i8 |]
-  in
-  L.declare_function "printf" printf_t g_mod
-in
-
 let g_binop_t = L.function_type g_val [| g_val; g_val |]
 and g_index_t = L.function_type g_val [| g_val; g_i32 |]
 and g_unop_t = L.function_type g_val [| g_val |]
+and g_func1_t = L.function_type g_i32 [| g_val |]
 in
 let g_binop_plus = L.declare_function "_binop_plus" g_binop_t g_mod
 and g_binop_minus = L.declare_function "_binop_minus" g_binop_t g_mod
@@ -148,6 +143,7 @@ and g_binop_get_value = L.declare_function "_binop_get_value" g_binop_t g_mod
 and g_binop_get_index = L.declare_function "_binop_get_index" g_index_t g_mod
 and g_unop_len = L.declare_function "_unop_len" g_unop_t g_mod
 and g_binop_concat = L.declare_function "_binop_concat" g_binop_t g_mod
+and g_func_print = L.declare_function "_func_print" g_func1_t g_mod
 in
 
 
@@ -276,6 +272,10 @@ let build_sfunc sfunc =
         (cont'', e')
       in
       v
+    | SCall (_, "print", [e]) ->
+      let (cont', e') = build_sexpr cont e
+      in
+      (cont', L.build_call g_func_print [| e' |] "_func_print_res" cont'.builder)
     | SCall (_, f, el) ->
       let (fdef, fdec) = StringMap.find f g_funtab
       in
