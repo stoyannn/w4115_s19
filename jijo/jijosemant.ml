@@ -162,8 +162,6 @@ let rec sexpr_of_expr cont expr =
     in
     (cont'', (t', SBinop(p, (t1, e1'), o, (t2, e2'))))
   | Assign (p, s, None, None, e) ->
-    let t = typ_of_id cont p s
-    in
     let (cont', (t', e')) = sexpr_of_expr cont e
     in
     let cont'' = {cont' with symtab = StringMap.add s None cont'.symtab}

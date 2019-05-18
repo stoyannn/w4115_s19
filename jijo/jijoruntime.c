@@ -308,13 +308,20 @@ struct _value _binop_get_value(struct _value op1, struct _value op2)
     return _binop_get_char(op1, (int) op2.value);
   }
 
-  if (op1.type == TYP_OBJECT) {
-    _binop_typecheck(".", op1, TYP_OBJECT, op2, TYP_NUMBER);
-    return _func_get_element(op1, (int) op2.value);
-  }
+  op1.type == TYP_OBJECT
+    ? _binop_typecheck(".", op1, TYP_OBJECT, op2, TYP_NUMBER)
+    : _binop_typecheck("[", op1, TYP_ARRAY, op2, TYP_NUMBER);
 
-  _binop_typecheck("[", op1, TYP_ARRAY, op2, TYP_NUMBER);
   return _func_get_element(op1, (int) op2.value);
+}
+
+int _func_set_value(struct _value op1, struct _value op2, struct _value op3)
+{
+  op1.type == TYP_OBJECT
+    ? _binop_typecheck(".", op1, TYP_OBJECT, op2, TYP_NUMBER)
+    : _binop_typecheck("[", op1, TYP_ARRAY, op2, TYP_NUMBER);
+
+  return _func_set_element(op1, (int) op2.value,  op3);
 }
 
 

@@ -60,19 +60,23 @@ and (g_strtab, g_idtab) =
       in
       List.fold_left add_sexpr (sm, im') (List.map snd fl)
     | SArrlit (_, el) -> List.fold_left add_sexpr (sm, im) el
-    | SId (_, s) ->
-      let im' = add_id im s
-      in
-      (sm, im')
     | SUnop (_, e, _) -> add_sexpr (sm, im) e
     | SBinop (_, e1, _, e2) ->
       let (sm', im') = add_sexpr (sm, im) e1
       in
       add_sexpr (sm', im') e2
-    | SAssign (_, s, None, None, e) ->
+    | SAssign (_, s, f, None, e) ->
       let (sm', im') = add_sexpr (sm, im) e
       in
-      (sm', add_id im' s)
+      let im'' = match f with
+        | Some f' -> add_id im' f'
+        | None -> im'
+      in
+      (sm', im'')
+    | SAssign (_, s, _, Some i, e) ->
+      let (sm', im') = add_sexpr (sm, im) i
+      in
+      add_sexpr (sm', im') e
     | SCall (_, _, el) -> List.fold_left add_sexpr (sm, im) el
     | _ -> (sm, im)
   and add_sstmt (sm, im) sstmt =
@@ -120,9 +124,12 @@ and g_arr_z = L.const_struct g_cont [| g_str; L.const_float g_dbl 0.0 |]
 in
 
 let g_binop_t = L.function_type g_val [| g_val; g_val |]
-and g_index_t = L.function_type g_val [| g_val; g_i32 |]
 and g_unop_t = L.function_type g_val [| g_val |]
-and g_func1_t = L.function_type g_i32 [| g_val |]
+and g_new_t = L.function_type g_val [| g_i8 |]
+and g_get_t = L.function_type g_val [| g_val; g_i32 |]
+and g_set_t = L.function_type g_i32 [| g_val; g_i32; g_val |]
+and g_set2_t = L.function_type g_i32 [| g_val; g_val; g_val |]
+and g_print_t = L.function_type g_i32 [| g_val |]
 in
 let g_binop_plus = L.declare_function "_binop_plus" g_binop_t g_mod
 and g_binop_minus = L.declare_function "_binop_minus" g_binop_t g_mod
@@ -139,11 +146,14 @@ and g_binop_and = L.declare_function "_binop_and" g_binop_t g_mod
 and g_binop_or = L.declare_function "_binop_or" g_binop_t g_mod
 and g_unop_not = L.declare_function "_unop_not" g_unop_t g_mod
 and g_binop_is = L.declare_function "_binop_is" g_binop_t g_mod
+and g_func_new_composite = L.declare_function "_func_new_composite" g_new_t g_mod
+and g_func_get_element = L.declare_function "_func_get_element" g_get_t g_mod
+and g_func_set_element = L.declare_function "_func_set_element" g_set_t g_mod
 and g_binop_get_value = L.declare_function "_binop_get_value" g_binop_t g_mod
-and g_binop_get_index = L.declare_function "_binop_get_index" g_index_t g_mod
+and g_func_set_value = L.declare_function "_func_set_value" g_set2_t g_mod
 and g_unop_len = L.declare_function "_unop_len" g_unop_t g_mod
 and g_binop_concat = L.declare_function "_binop_concat" g_binop_t g_mod
-and g_func_print = L.declare_function "_func_print" g_func1_t g_mod
+and g_func_print = L.declare_function "_func_print" g_print_t g_mod
 in
 
 
@@ -207,7 +217,7 @@ let build_sfunc sfunc =
       | Some x ->
         let i = L.const_int g_i32 (StringMap.find s g_idtab)
         in
-        L.build_call g_binop_get_index [| x; i |] "_binop_get_index_res" cont.builder
+        L.build_call g_func_get_element [| x; i |] "_binop_get_index_res" cont.builder
       | None -> (
         match (get_var cont s) with
         | Some x -> L.build_load x s cont.builder
@@ -253,12 +263,12 @@ let build_sfunc sfunc =
         | A.And _ -> L.build_call g_binop_and arg "_binop_and_res" bld
         | A.Or _ -> L.build_call g_binop_or arg "_binop_or_res" bld
         | A.Is _ -> L.build_call g_binop_is arg "_binop_is_res" bld
-        | A.Ind _ -> L.build_call g_binop_get_index arg "_binop_get_index_res" bld
+        | A.Ind _ -> L.build_call g_binop_get_value arg "_binop_get_value_res" bld
         | A.Dot _ -> e2'
         | A.DotDot _ -> e2'
       in
       (cont'', v)
-    | SAssign (_, s, e) ->
+    | SAssign (_, s, f, _, e) ->
       let (cont', e') = build_sexpr cont e
       in
       let v = match (get_var cont' s) with
