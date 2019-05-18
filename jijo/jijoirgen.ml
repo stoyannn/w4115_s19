@@ -30,6 +30,7 @@ and g_i32 = L.i32_type g_cont
 and g_dbl = L.double_type g_cont
 in
 let g_val = L.struct_type g_cont [| g_i8; g_dbl |]
+and g_i8ptr = L.pointer_type g_i8
 in
 
 let g_funtab =
@@ -41,68 +42,8 @@ let g_funtab =
     StringMap.add f.sname (L.define_function f.sname func g_mod, f) m
   in
   List.fold_left add_sfunc StringMap.empty sprogram.sfuncs;
-
-and (g_strtab, g_idtab) =
-  let rec add_sexpr (sm, im) ((_, sx) : sexpr) =
-    let add_id m s =
-      if not (StringMap.mem s m) then
-        (StringMap.add s (StringMap.cardinal m) m)
-      else
-        m
-    in
-    match sx with
-    | SStrlit (_, s) when not (StringMap.mem s sm) ->
-      let v = (L.define_global "_const_str" (L.const_stringz g_cont s) g_mod)
-      in
-      (StringMap.add s v sm, im)
-    | SObjlit (_, fl) ->
-      let im' = List.fold_left add_id im (List.map fst fl)
-      in
-      List.fold_left add_sexpr (sm, im') (List.map snd fl)
-    | SArrlit (_, el) -> List.fold_left add_sexpr (sm, im) el
-    | SUnop (_, e, _) -> add_sexpr (sm, im) e
-    | SBinop (_, e1, _, e2) ->
-      let (sm', im') = add_sexpr (sm, im) e1
-      in
-      add_sexpr (sm', im') e2
-    | SAssign (_, s, f, None, e) ->
-      let (sm', im') = add_sexpr (sm, im) e
-      in
-      let im'' = match f with
-        | Some f' -> add_id im' f'
-        | None -> im'
-      in
-      (sm', im'')
-    | SAssign (_, s, _, Some i, e) ->
-      let (sm', im') = add_sexpr (sm, im) i
-      in
-      add_sexpr (sm', im') e
-    | SCall (_, _, el) -> List.fold_left add_sexpr (sm, im) el
-    | _ -> (sm, im)
-  and add_sstmt (sm, im) sstmt =
-    match sstmt with
-    | SBlock (_, sl) -> List.fold_left add_sstmt (sm, im) sl
-    | SExpr (_, e) -> add_sexpr (sm, im) e
-    | SIf (_, e, s) -> 
-      let (sm', im') = add_sexpr (sm, im) e
-      in
-      add_sstmt (sm', im') s
-    | SIfElse (_, e, s1, s2) ->
-      let (sm', im') = add_sexpr (sm, im) e
-      in
-      let (sm'', im'') = add_sstmt (sm', im') s1
-      in
-      add_sstmt (sm'', im'') s2
-    | SWhile (_, e, s) ->
-      let (sm', im') = add_sexpr (sm, im) e
-      in
-      add_sstmt (sm', im') s
-    | SReturn (_, Some e) -> add_sexpr (sm, im) e
-    | _ -> (sm, im)
-  and add_sfunc (sm, im) sfunc =
-    List.fold_left add_sstmt (sm, im) sfunc.sbody
-  in
-  List.fold_left add_sfunc (StringMap.empty, StringMap.empty) sprogram.sfuncs
+and (g_strtab) = Hashtbl.create 1024
+and (g_idtab) = Hashtbl.create 1024
 in
 
 let g_void = L.const_int g_i8 0
@@ -126,6 +67,7 @@ in
 let g_binop_t = L.function_type g_val [| g_val; g_val |]
 and g_unop_t = L.function_type g_val [| g_val |]
 and g_new_t = L.function_type g_val [| g_i8 |]
+and g_new2_t = L.function_type g_val [| g_i8ptr |]
 and g_get_t = L.function_type g_val [| g_val; g_i32 |]
 and g_set_t = L.function_type g_i32 [| g_val; g_i32; g_val |]
 and g_set2_t = L.function_type g_i32 [| g_val; g_val; g_val |]
@@ -147,6 +89,7 @@ and g_binop_or = L.declare_function "_binop_or" g_binop_t g_mod
 and g_unop_not = L.declare_function "_unop_not" g_unop_t g_mod
 and g_binop_is = L.declare_function "_binop_is" g_binop_t g_mod
 and g_func_new_composite = L.declare_function "_func_new_composite" g_new_t g_mod
+and g_func_new_string = L.declare_function "_func_new_string" g_new2_t g_mod
 and g_func_get_element = L.declare_function "_func_get_element" g_get_t g_mod
 and g_func_set_element = L.declare_function "_func_set_element" g_set_t g_mod
 and g_binop_get_value = L.declare_function "_binop_get_value" g_binop_t g_mod
@@ -207,17 +150,66 @@ let build_sfunc sfunc =
     | SBoolit (_, b) -> (cont, if b then g_bool_t else g_bool_f)
     | SNumlit (_, n) -> (cont, L.const_struct g_cont [| g_num; L.const_float g_dbl n |])
     | SStrlit (_, s) ->
-      let v = StringMap.find s g_strtab
+      let v =
+        try Hashtbl.find g_strtab s
+        with Not_found ->
+          let v' = L.build_global_stringptr s "_str_const" cont.builder
+          in
+          Hashtbl.add g_strtab s v'; v'
       in
-      (cont, L.const_struct g_cont [| g_str; v |])
-    | SObjlit (_, fl) -> (cont, g_obj_z)
-    | SArrlit (_, el) -> (cont, g_arr_z)
+      let s' = L.build_call g_func_new_string [| v |] "func_new_string_" cont.builder
+      in
+      (cont, s')
+    | SObjlit (_, fl) ->
+      let o = L.build_call g_func_new_composite [| g_obj |]
+        "_func_new_composite_" cont.builder
+      in
+      let add_field c f =
+        let (c', e') = build_sexpr c (snd f)
+        in
+        let i =
+          try Hashtbl.find g_idtab (fst f)
+          with Not_found ->
+            let i' = L.const_int g_i32 (Hashtbl.length g_idtab)
+            in
+            Hashtbl.add g_idtab (fst f) i'; i'
+        in
+        let _ = L.build_call g_func_set_element [| o; i; e' |]
+          "_func_set_element_" cont.builder
+        in
+        c'
+      in
+      let cont' = List.fold_left add_field cont fl
+      in
+      (cont', o)
+    | SArrlit (_, el) ->
+      let o = L.build_call g_func_new_composite [| g_arr |]
+        "_func_new_composite_" cont.builder
+      in
+      let add_element (c, i) e =
+        let (c', e') = build_sexpr c e
+        in
+        let i' = L.const_int g_i32 i
+        in
+        let _ = L.build_call g_func_set_element [| o; i'; e' |]
+          "_func_set_element_" cont.builder
+        in
+        (c', (i + 1))
+      in
+      let (cont', _) = List.fold_left add_element (cont, 0) el
+      in
+      (cont', o)
     | SId (_, s) -> 
       let v = match cont.this with
       | Some x ->
-        let i = L.const_int g_i32 (StringMap.find s g_idtab)
+        let i =
+          try Hashtbl.find g_idtab s
+          with Not_found ->
+            let i' = L.const_int g_i32 (Hashtbl.length g_idtab)
+            in
+            Hashtbl.add g_idtab s i'; i'
         in
-        L.build_call g_func_get_element [| x; i |] "_binop_get_index_res" cont.builder
+        L.build_call g_func_get_element [| x; i |] "_func_get_element_" cont.builder
       | None -> (
         match (get_var cont s) with
         | Some x -> L.build_load x s cont.builder
@@ -232,9 +224,9 @@ let build_sfunc sfunc =
       and bld = cont'.builder
       in
       let v = match op with
-        | A.Neg _ -> L.build_call g_unop_uminus arg "_unop_uminus_res" bld
-        | A.Not _ -> L.build_call g_unop_not arg "_unop_not_res" bld
-        | A.Len _ -> L.build_call g_unop_len arg "_unop_len_res" bld
+        | A.Neg _ -> L.build_call g_unop_uminus arg "_unop_uminus_" bld
+        | A.Not _ -> L.build_call g_unop_not arg "_unop_not_" bld
+        | A.Len _ -> L.build_call g_unop_len arg "_unop_len_" bld
       in
       (cont', v)
     | SBinop (_, e1, op, e2) ->
@@ -249,21 +241,21 @@ let build_sfunc sfunc =
       and bld = cont''.builder
       in
       let v = match op with
-        | A.Add _ -> L.build_call g_binop_plus arg "_binop_plus_res" bld
-        | A.Sub _ -> L.build_call g_binop_minus arg "_binop_minus_res" bld
-        | A.Mult _ -> L.build_call g_binop_mult arg "_binop_mult_res" bld
-        | A.Div _ -> L.build_call g_binop_div arg "_binop_div_res" bld
-        | A.Concat _ -> L.build_call g_binop_concat arg "_binop_concat_res" bld
-        | A.Equal _ -> L.build_call g_binop_equal arg "_binop_equal_res" bld
-        | A.Nequal _ -> L.build_call g_binop_nequal arg "_binop_nequal_res" bld
-        | A.Less _ -> L.build_call g_binop_less arg "_binop_less_res" bld
-        | A.Lequal _ -> L.build_call g_binop_lequal arg "_binop_lequal_res" bld
-        | A.Grtr _ -> L.build_call g_binop_grtr arg "_binop_grtr_res" bld
-        | A.Grequal _ -> L.build_call g_binop_grequal arg "_binop_grequal_res" bld
-        | A.And _ -> L.build_call g_binop_and arg "_binop_and_res" bld
-        | A.Or _ -> L.build_call g_binop_or arg "_binop_or_res" bld
-        | A.Is _ -> L.build_call g_binop_is arg "_binop_is_res" bld
-        | A.Ind _ -> L.build_call g_binop_get_value arg "_binop_get_value_res" bld
+        | A.Add _ -> L.build_call g_binop_plus arg "_binop_plus_" bld
+        | A.Sub _ -> L.build_call g_binop_minus arg "_binop_minus_" bld
+        | A.Mult _ -> L.build_call g_binop_mult arg "_binop_mult_" bld
+        | A.Div _ -> L.build_call g_binop_div arg "_binop_div_" bld
+        | A.Concat _ -> L.build_call g_binop_concat arg "_binop_concat_" bld
+        | A.Equal _ -> L.build_call g_binop_equal arg "_binop_equal_" bld
+        | A.Nequal _ -> L.build_call g_binop_nequal arg "_binop_nequal_" bld
+        | A.Less _ -> L.build_call g_binop_less arg "_binop_less_" bld
+        | A.Lequal _ -> L.build_call g_binop_lequal arg "_binop_lequal_" bld
+        | A.Grtr _ -> L.build_call g_binop_grtr arg "_binop_grtr_" bld
+        | A.Grequal _ -> L.build_call g_binop_grequal arg "_binop_grequal_" bld
+        | A.And _ -> L.build_call g_binop_and arg "_binop_and_" bld
+        | A.Or _ -> L.build_call g_binop_or arg "_binop_or_" bld
+        | A.Is _ -> L.build_call g_binop_is arg "_binop_is_" bld
+        | A.Ind _ -> L.build_call g_binop_get_value arg "_binop_get_value_" bld
         | A.Dot _ -> e2'
         | A.DotDot _ -> e2'
       in
@@ -285,7 +277,7 @@ let build_sfunc sfunc =
     | SCall (_, "print", [e]) ->
       let (cont', e') = build_sexpr cont e
       in
-      (cont', L.build_call g_func_print [| e' |] "_func_print_res" cont'.builder)
+      (cont', L.build_call g_func_print [| e' |] "_func_print_" cont'.builder)
     | SCall (_, f, el) ->
       let (fdef, fdec) = StringMap.find f g_funtab
       in

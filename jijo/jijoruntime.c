@@ -197,7 +197,7 @@ struct _value _binop_is(struct _value op1, struct _value op2)
 
 
 /*
- * Object field and array element access
+ * String, object.field and array[element] access
  */
 
 struct _value _func_new_composite(unsigned char type)
@@ -211,9 +211,19 @@ struct _value _func_new_composite(unsigned char type)
   memset(comp_ptr, 0, sizeof(struct _composite));
 
   struct _value ret;
+  memset(&ret, 0, sizeof(ret));
   ret.type = type;
   memcpy(&(ret.value), &comp_ptr, sizeof(struct _composite *));
 
+  return ret;
+}
+
+struct _value _func_new_string(char *str)
+{
+  struct _value ret;
+  memset(&ret, 0, sizeof(ret));
+  ret.type = TYP_STRING;
+  memcpy(&(ret.value), &str, sizeof(char *));
   return ret;
 }
 
@@ -444,6 +454,6 @@ int main(int argc, char**argv)
   this.type = 0.0;
 
   struct _value ret = jijo(this);
-  return _func_print(ret);
+  return _func_print(ret) + fprintf(stdout, "\n");
 }
 

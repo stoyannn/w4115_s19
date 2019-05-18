@@ -1,0 +1,11 @@
+jijo() = {
+  a = {
+    one: null,
+    two: true,
+    three: "abs",
+    four: {prop: "abs"},
+    five: [1, null, "haha", false]
+  };
+  print(a);
+}
+
