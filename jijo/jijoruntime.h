@@ -14,18 +14,20 @@
 #define TRUE  1.0
 #define FALSE 0.0
 
+#define COMPOSITE_INCREMENT 16
+
 struct _value {
   unsigned char type;
   double value;
 };
 
 struct _element {
-  int index;
+  int id;
   struct _value value;
 };
 
 struct _composite {
   int length;
-  struct _element *values;
+  struct _element *elements;
 };
 
