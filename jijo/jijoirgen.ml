@@ -46,11 +46,18 @@ and (g_strtab) = Hashtbl.create 1024
 and (g_idtab) = Hashtbl.create 1024
 in
 
+let get_add_field_id f =
+  try Hashtbl.find g_idtab f
+  with Not_found ->
+    let i' = L.const_int g_i32 (Hashtbl.length g_idtab)
+    in
+    Hashtbl.add g_idtab f i'; i'
+in
+
 let g_void = L.const_int g_i8 0
 and g_null = L.const_int g_i8 1
 and g_bool = L.const_int g_i8 2
 and g_num = L.const_int g_i8 3
-and g_str = L.const_int g_i8 4
 and g_obj = L.const_int g_i8 5
 and g_arr = L.const_int g_i8 6
 in
@@ -59,9 +66,6 @@ and g_null_z = L.const_struct g_cont [| g_null; L.const_float g_dbl 0.0 |]
 and g_bool_t = L.const_struct g_cont [| g_bool; L.const_float g_dbl 1.0 |]
 and g_bool_f = L.const_struct g_cont [| g_bool; L.const_float g_dbl 0.0 |]
 and g_num_z = L.const_struct g_cont [| g_num; L.const_float g_dbl 0.0 |]
-and g_str_z = L.const_struct g_cont [| g_str; L.const_float g_dbl 0.0 |]
-and g_obj_z = L.const_struct g_cont [| g_str; L.const_float g_dbl 0.0 |]
-and g_arr_z = L.const_struct g_cont [| g_str; L.const_float g_dbl 0.0 |]
 in
 
 let g_binop_t = L.function_type g_val [| g_val; g_val |]
@@ -167,12 +171,7 @@ let build_sfunc sfunc =
       let add_field c f =
         let (c', e') = build_sexpr c (snd f)
         in
-        let i =
-          try Hashtbl.find g_idtab (fst f)
-          with Not_found ->
-            let i' = L.const_int g_i32 (Hashtbl.length g_idtab)
-            in
-            Hashtbl.add g_idtab (fst f) i'; i'
+        let i = get_add_field_id (fst f)
         in
         let _ = L.build_call g_func_set_element [| o; i; e' |]
           "_func_set_element_" cont.builder
@@ -202,12 +201,7 @@ let build_sfunc sfunc =
     | SId (_, s) -> 
       let v = match cont.this with
       | Some x ->
-        let i =
-          try Hashtbl.find g_idtab s
-          with Not_found ->
-            let i' = L.const_int g_i32 (Hashtbl.length g_idtab)
-            in
-            Hashtbl.add g_idtab s i'; i'
+        let i = get_add_field_id s
         in
         L.build_call g_func_get_element [| x; i |] "_func_get_element_" cont.builder
       | None -> (
@@ -260,20 +254,25 @@ let build_sfunc sfunc =
         | A.DotDot _ -> e2'
       in
       (cont'', v)
-    | SAssign (_, s, f, _, e) ->
+    | SAssign (_, s, f, None, e) ->
       let (cont', e') = build_sexpr cont e
       in
-      let v = match (get_var cont' s) with
-      | Some x ->
-        ignore (L.build_store e' x cont'.builder);
-        (cont', e')
-      | None ->
-        let (cont'', x') = add_var cont' s
-        in
-        ignore (L.build_store e' x' cont''.builder);
-        (cont'', e')
+      let (cont'', v) =
+        match (get_var cont' s) with
+        | Some x -> (cont', x)
+        | None -> add_var cont' s
       in
-      v
+      let _ = 
+        match f with
+        | Some x ->
+          let i = get_add_field_id x
+          in
+          L.build_call g_func_set_element [| v; i; e' |]
+            "_func_set_element_" cont''.builder
+        | None ->
+          L.build_store e' v cont''.builder
+      in
+      (cont'', e')
     | SCall (_, "print", [e]) ->
       let (cont', e') = build_sexpr cont e
       in
