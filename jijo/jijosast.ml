@@ -18,7 +18,7 @@ and sx =
   | SId of pos * string
   | SUnop of pos * sexpr * uop
   | SBinop of pos * sexpr * bop * sexpr
-  | SAssign of pos * string * sexpr
+  | SAssign of pos * string * string option * sexpr option * sexpr
   | SCall of pos * string * sexpr list
 
 type sstmt =

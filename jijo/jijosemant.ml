@@ -161,12 +161,44 @@ let rec sexpr_of_expr cont expr =
         "' in expression: " ^ (Jijohelp.str_of_expr x)))
     in
     (cont'', (t', SBinop(p, (t1, e1'), o, (t2, e2'))))
-  | Assign (p, s, e) ->
-    let (cont', (t, e')) = sexpr_of_expr cont e
+  | Assign (p, s, None, None, e) ->
+    let t = typ_of_id cont p s
+    in
+    let (cont', (t', e')) = sexpr_of_expr cont e
     in
     let cont'' = {cont' with symtab = StringMap.add s None cont'.symtab}
     in
-    (cont'', (t, SAssign(p, s, (t, e'))))
+    (cont'', (t', SAssign(p, s, None, None, (t', e'))))
+  | Assign (p, s, Some f, _, e) ->
+    let t = typ_of_id cont p s
+    in
+    if not (is_typ t Object) then
+      raise (SemantError(p, cont.fname, "type '" ^ (Jijohelp.str_of_typ t) ^
+        "' cannot be used as object"))
+    else
+      let (cont', (t', e')) = sexpr_of_expr cont e
+      in
+      let cont'' = {cont' with symtab = StringMap.add s None cont'.symtab}
+      in
+      (cont'', (t', SAssign(p, s, Some f, None, (t', e'))))
+  | Assign (p, s, _, Some i, e) ->
+    let t = typ_of_id cont p s
+    in
+    if not (is_typ t Array) then
+      raise (SemantError(p, cont.fname, "type '" ^ (Jijohelp.str_of_typ t) ^
+        "' cannot be used as array"))
+    else
+      let (cont', (t', i')) = sexpr_of_expr cont i
+      in
+      if not (is_typ t' Number) then
+        raise (SemantError(p, cont.fname, "type '" ^ (Jijohelp.str_of_typ t') ^
+          "' cannot be used as array index"))
+      else
+        let (cont'', (t'', e')) = sexpr_of_expr cont' e
+        in
+        let cont''' = {cont'' with symtab = StringMap.add s None cont''.symtab}
+        in
+        (cont''', (t'', SAssign(p, s, None, Some (t', i'), (t'', e'))))
   | Call (p, f, el) ->
     let func = 
       try StringMap.find f g_bintab

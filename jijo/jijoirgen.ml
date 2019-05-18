@@ -69,7 +69,7 @@ and (g_strtab, g_idtab) =
       let (sm', im') = add_sexpr (sm, im) e1
       in
       add_sexpr (sm', im') e2
-    | SAssign (_, s, e) ->
+    | SAssign (_, s, None, None, e) ->
       let (sm', im') = add_sexpr (sm, im) e
       in
       (sm', add_id im' s)

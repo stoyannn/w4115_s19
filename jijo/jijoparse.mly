@@ -147,6 +147,9 @@ expr:
   | expr DOTDOT expr { Binop ($2, $1, DotDot $2, $3) }
 
   | ID ASSIGN expr { Assign (fst $1, snd $1, $3) }
+  | ID DOT ID ASSIGN expr { Assign (fst $1, snd $1, Some (snd $3), None, $5) }
+  | ID LBRACK expr RBRACK ASSIGN expr { Assign (fst $1, snd $1, None, Some ($3), $6) }
+
   | ID LPAREN expr_opt RPAREN { Call(fst $1, snd $1, $3) }
 
 expr_opt:

@@ -57,7 +57,9 @@ let rec str_of_expr = function
   | Binop (_, e1, o, e2) when (match o with Ind _ -> true | _ -> false) ->
     (str_of_expr e1) ^ " [" ^ (str_of_expr e2) ^ "]"
   | Binop (_, e1, o, e2) -> (str_of_expr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_expr e2)
-  | Assign (_, s, e) -> s ^ " = " ^ (str_of_expr e)
+  | Assign (_, s, None, None, e) -> s ^ " = " ^ (str_of_expr e)
+  | Assign (_, s, Some f, _, e) -> s ^ "." ^ f ^ " = " ^ (str_of_expr e)
+  | Assign (_, s, _, Some i, e) -> s ^ "[" ^ (str_of_expr i) ^ "] = " ^ (str_of_expr e)
   | Call (_, s, el) -> s ^ "(" ^ (String.concat ", " (List.map str_of_expr el)) ^ ")"
 
 let pos_of_expr = function
@@ -70,7 +72,7 @@ let pos_of_expr = function
   | Id (p, _) -> p
   | Unop (p, _, _) -> p
   | Binop (p, _, _, _) -> p
-  | Assign (p, _, _) -> p
+  | Assign (p, _, _, _, _) -> p
   | Call (p, _, _) -> p
 
 let rec str_of_sexpr = function
@@ -92,7 +94,10 @@ let rec str_of_sexpr = function
   | (_, SBinop (_, e1, o, e2)) when (match o with Ind _ -> true | _ -> false) ->
     (str_of_sexpr e1) ^ " [" ^ (str_of_sexpr e2) ^ "]"
   | (_, SBinop (_, e1, o, e2)) -> (str_of_sexpr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_sexpr e2)
-  | (_, SAssign (_, s, e)) -> s ^ " = " ^ (str_of_sexpr e)
+  | (_, SAssign (_, s, None, None, e)) -> s ^ " = " ^ (str_of_sexpr e)
+  | (_, SAssign (_, s, Some f, _, e)) -> s ^ "." ^ f ^ " = " ^ (str_of_sexpr e)
+  | (_, SAssign (_, s, _, Some i, e)) ->
+    s ^ "[" ^ (str_of_sexpr i) ^ "] = " ^ (str_of_sexpr e)
   | (_, SCall (_, s, el)) -> s ^ "(" ^ (String.concat ", " (List.map str_of_sexpr el)) ^ ")"
 
 let rec str_of_stmt = function

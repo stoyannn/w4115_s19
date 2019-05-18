@@ -44,7 +44,7 @@ type expr =
   | Id of pos * string
   | Unop of pos * expr * uop
   | Binop of pos * expr * bop * expr
-  | Assign of pos * string * expr
+  | Assign of pos * string * string option * expr option * expr
   | Call of pos * string * expr list
 
 type stmt =
