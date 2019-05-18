@@ -6,10 +6,11 @@
 #define TYP_OBJECT  5
 #define TYP_ARRAY   6
 
-#define ERR_TYPE 101
-#define ERR_VAL  102
-#define ERR_MEM  103
-#define ERR_BUG  104
+#define ERR_TYPE   101
+#define ERR_VAL    102
+#define ERR_MEM    103
+#define ERR_BUG    104
+#define ERR_ASSERT 105
 
 #define TRUE  1.0
 #define FALSE 0.0

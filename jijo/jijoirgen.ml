@@ -76,6 +76,7 @@ and g_get_t = L.function_type g_val [| g_val; g_i32 |]
 and g_set_t = L.function_type g_i32 [| g_val; g_i32; g_val |]
 and g_set2_t = L.function_type g_i32 [| g_val; g_val; g_val |]
 and g_print_t = L.function_type g_i32 [| g_val |]
+and g_assert_t = L.function_type g_i32 [| g_val; g_val |]
 in
 let g_binop_plus = L.declare_function "_binop_plus" g_binop_t g_mod
 and g_binop_minus = L.declare_function "_binop_minus" g_binop_t g_mod
@@ -101,6 +102,7 @@ and g_func_set_value = L.declare_function "_func_set_value" g_set2_t g_mod
 and g_unop_len = L.declare_function "_unop_len" g_unop_t g_mod
 and g_binop_concat = L.declare_function "_binop_concat" g_binop_t g_mod
 and g_func_print = L.declare_function "_func_print" g_print_t g_mod
+and g_func_assert = L.declare_function "_func_assert" g_assert_t g_mod
 in
 
 
@@ -306,6 +308,12 @@ let build_sfunc sfunc =
       let (cont', e') = build_sexpr cont e
       in
       (cont', L.build_call g_func_print [| e' |] "_func_print_" cont'.builder)
+    | SCall (_, "assert", [e1; e2]) ->
+      let (cont', e1') = build_sexpr cont e1
+      in
+      let (cont'', e2') = build_sexpr cont' e2
+      in
+      (cont'', L.build_call g_func_assert [| e1'; e2' |] "_func_assert_" cont''.builder)
     | SCall (_, f, el) ->
       let (fdef, fdec) = StringMap.find f g_funtab
       in

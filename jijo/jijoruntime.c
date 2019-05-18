@@ -445,6 +445,15 @@ int _func_print_composite(struct _value comp)
   return char_count;
 }
 
+int _func_assert(struct _value result, struct _value message)
+{
+  if (result.type != TYP_BOOLEAN || !(result.value != FALSE)) {
+    _fatal(ERR_ASSERT, "assertion failure %s", message);
+  }
+
+  return  0;
+}
+
 extern struct _value jijo(struct _value);
 
 int main(int argc, char**argv)

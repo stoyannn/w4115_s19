@@ -27,8 +27,9 @@ let sprogram_of_program program =
 
 let g_bintab =
   let print = { pos = (1, 1); name = "print"; args = ["a"]; body = [] }
+  and assrt = { pos = (1, 1); name = "assert"; args = ["a"; "b"]; body = [] }
   in
-  StringMap.add print.name print StringMap.empty
+  StringMap.add assrt.name assrt (StringMap.add print.name print StringMap.empty)
 in
       
 let g_funtab =
