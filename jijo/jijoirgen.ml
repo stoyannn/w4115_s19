@@ -265,9 +265,21 @@ let build_sfunc sfunc =
       in
       (cont'', L.build_call g_func_assert [| e1'; e2' |] "_func_assert_" cont''.builder)
     | SCall (_, f, el) ->
-      let (fdef, fdec) = StringMap.find f g_funtab
+      let add_arg (c, al) a =
+        let (cont', a') = build_sexpr c a
+        in
+        (cont', a' :: al)
       in
-      (cont, g_null_z)
+      let (fd, _) = StringMap.find f g_funtab
+      in
+      let thisarg =
+        match cont.this with
+        | Some e -> e
+        | None -> g_null_z
+      in
+      let (cont', args) = List.fold_left add_arg (cont, []) el
+      in
+      (cont', L.build_call fd (Array.of_list (thisarg :: args)) (f ^ "_") cont'.builder)
   in
 
   let add_terminal cont inst =

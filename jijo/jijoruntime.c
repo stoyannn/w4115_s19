@@ -455,7 +455,8 @@ struct _value _func_print_composite(struct _value comp)
 struct _value _func_assert(struct _value val, struct _value msg)
 {
   if (val.type != TYP_BOOLEAN || !(val.value != FALSE)) {
-    _fatal(ERR_ASSERT, "assertion failure: %s", *((char **) &(msg.value)));
+    char *msg_ = msg.type == TYP_STRING ? *((char **) &(msg.value)) : "unspecified";
+    _fatal(ERR_ASSERT, "assertion failure: %s", msg_);
   }
 
   return val;
