@@ -256,7 +256,7 @@ struct _value _func_get_element(struct _value comp, int id)
   return ret;
 }
 
-int _func_set_element(struct _value comp, int id, struct _value val)
+struct _value _func_set_element(struct _value comp, int id, struct _value val)
 {
   if (comp.type != TYP_OBJECT && comp.type != TYP_ARRAY) {
     _fatal(ERR_TYPE, "wrong type for composite: %s", _type_str(comp.type));
@@ -266,7 +266,7 @@ int _func_set_element(struct _value comp, int id, struct _value val)
   struct _element *elem_ptr = _func_find_id(comp_ptr, id);
   if (elem_ptr != NULL) {
     elem_ptr->value = val;
-    return 0;
+    return val;
   }
 
   if (!(comp_ptr->length % COMPOSITE_INCREMENT)) {
@@ -280,7 +280,7 @@ int _func_set_element(struct _value comp, int id, struct _value val)
   elem_ptr->value = val;
   comp_ptr->length += 1;
 
-  return 1;
+  return val;
 }
 
 struct _value _binop_get_char(struct _value op1, int index)
@@ -325,7 +325,7 @@ struct _value _binop_get_value(struct _value op1, struct _value op2)
   return _func_get_element(op1, (int) op2.value);
 }
 
-int _func_set_value(struct _value op1, struct _value op2, struct _value op3)
+struct _value _func_set_value(struct _value op1, struct _value op2, struct _value op3)
 {
   op1.type == TYP_OBJECT
     ? _binop_typecheck(".", op1, TYP_OBJECT, op2, TYP_NUMBER)
@@ -392,66 +392,73 @@ struct _value _binop_concat(struct _value op1, struct _value op2)
  * Built-ins: print, main
  */
 
-int _func_print_composite(struct _value);
+struct _value _func_print_composite(struct _value);
 
-int _func_print(struct _value val)
+struct _value _func_print(struct _value val)
 {
   switch (val.type) {
     case TYP_VOID:
-      return 0;
+      break;
     case TYP_NULL:
-      return fprintf(stdout, "null");
+      fprintf(stdout, "null");
+      break;
     case TYP_BOOLEAN:
-      return fprintf(stdout, "%s", val.value != FALSE ? "true" : "false");
+      fprintf(stdout, "%s", val.value != FALSE ? "true" : "false");
+      break;
     case TYP_NUMBER:
       if (ceil(val.value) == val.value) {
-        return fprintf(stdout, "%ld", (long) ceil(val.value));
+        fprintf(stdout, "%ld", (long) ceil(val.value));
+      } else {
+        fprintf(stdout, "%f", val.value);
       }
-      return fprintf(stdout, "%f", val.value);
+      break;
     case TYP_STRING:
-      return fprintf(stdout, "%s", *((char **) &(val.value)));
+      fprintf(stdout, "%s", *((char **) &(val.value)));
+      break;
     case TYP_OBJECT:
-      return fprintf(stdout, "{ ")
-        + _func_print_composite(val)
-        + fprintf(stdout, " }");
+      fprintf(stdout, "{ ");
+      _func_print_composite(val);
+      fprintf(stdout, " }");
+      break;
     case TYP_ARRAY:
-      return fprintf(stdout, "[ ")
-        + _func_print_composite(val)
-        + fprintf(stdout, " ]");
+      fprintf(stdout, "[ ");
+      _func_print_composite(val);
+      fprintf(stdout, " ]");
+      break;
     default:
       _fatal(ERR_BUG, "unknown type code: %d", val.type);
-      return 0;
   };
+
+  return val;
 }
 
-int _func_print_composite(struct _value comp)
+struct _value _func_print_composite(struct _value comp)
 {
   if (comp.type != TYP_OBJECT && comp.type != TYP_ARRAY) {
     _fatal(ERR_TYPE, "wrong type for composite: %s", _type_str(comp.type));
   }
 
-  int char_count = 0;
   struct _composite *comp_ptr = *((struct _composite **) &(comp.value));
   for (int i = 0; i < comp_ptr->length; ++i) {
     struct _element *elem_ptr = comp_ptr->elements + i;
     if (i > 0) {
-      char_count += fprintf(stdout, ", %d: ", elem_ptr->id);
+      fprintf(stdout, ", %d: ", elem_ptr->id);
     } else {
-      char_count += fprintf(stdout, "%d: ", elem_ptr->id);
+      fprintf(stdout, "%d: ", elem_ptr->id);
     }
-    char_count += _func_print(elem_ptr->value);
+    _func_print(elem_ptr->value);
   }
 
-  return char_count;
+  return comp;
 }
 
-int _func_assert(struct _value result, struct _value message)
+struct _value _func_assert(struct _value val, struct _value msg)
 {
-  if (result.type != TYP_BOOLEAN || !(result.value != FALSE)) {
-    _fatal(ERR_ASSERT, "assertion failure %s", message);
+  if (val.type != TYP_BOOLEAN || !(val.value != FALSE)) {
+    _fatal(ERR_ASSERT, "assertion failure: %s", *((char **) &(msg.value)));
   }
 
-  return  0;
+  return val;
 }
 
 extern struct _value jijo(struct _value);
@@ -463,6 +470,9 @@ int main(int argc, char**argv)
   this.type = 0.0;
 
   struct _value ret = jijo(this);
-  return _func_print(ret) + fprintf(stdout, "\n");
+  _func_print(ret);
+  fprintf(stdout, "\n");
+
+  return 0;
 }
 

@@ -93,18 +93,16 @@ stmt_list:
   | stmt stmt_list { $1 :: $2 }
 
 /*
- * NOTE for stmt rule below:
- * 1) shift/reduce conflict for:
- *     a) IF LPAREN expr RPAREN stmt
- *     b) IF LPAREN expr RPAREN stmt ELSE stmt
- *   Default YACC resolution to prefer shift will match ELSE w/ closest IF
- * 2) reduce/reduce conflict for:
- *     a) LBRACE stmt_list RBRACE
- *     b) expr SEMI (where expr can be LBRACE field_opt RBRACE)
- *   Default YACC resolution to reduce first rule will use curly braces as stmt_list delimiter
+ * NOTE: there is one shift/reduce conflict in the stmt rule below:
+ *   a) IF LPAREN expr RPAREN stmt
+ *   b) IF LPAREN expr RPAREN stmt ELSE stmt
+ * Default YACC resolution to prefer shift will match ELSE w/ closest IF
  */
 stmt:
   | LBRACE stmt_list RBRACE { Block ($1, $2) }
+  | ID ASSIGN expr SEMI { Assign (fst $1, snd $1, None, None, $3) }
+  | ID DOT ID ASSIGN expr SEMI { Assign (fst $1, snd $1, Some (snd $3), None, $5) }
+  | ID LBRACK expr RBRACK ASSIGN expr SEMI { Assign (fst $1, snd $1, None, Some ($3), $6) }
   | BREAK SEMI { Break $1 }
   | CONTINUE SEMI { Continue $1 }
   | IF LPAREN expr RPAREN stmt { If ($1, $3, $5) }
@@ -112,7 +110,6 @@ stmt:
   | WHILE LPAREN expr RPAREN stmt { While ($1, $3, $5) }
   | RETURN expr SEMI { Return ($1, Some $2) }
   | RETURN SEMI { Return ($1, None) }
-  | expr SEMI { Expr ($2, $1) }
 
 expr:
   | NULLIT { Nullit $1 }
@@ -145,10 +142,6 @@ expr:
   | expr LBRACK expr RBRACK { Binop ($2, $1, Ind $2, $3) }
   | expr DOT expr { Binop ($2, $1, Dot $2, $3) }
   | expr DOTDOT expr { Binop ($2, $1, DotDot $2, $3) }
-
-  | ID ASSIGN expr { Assign (fst $1, snd $1, None, None, $3) }
-  | ID DOT ID ASSIGN expr { Assign (fst $1, snd $1, Some (snd $3), None, $5) }
-  | ID LBRACK expr RBRACK ASSIGN expr { Assign (fst $1, snd $1, None, Some ($3), $6) }
 
   | ID LPAREN expr_opt RPAREN { Call(fst $1, snd $1, $3) }
 

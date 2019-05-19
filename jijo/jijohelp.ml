@@ -57,9 +57,6 @@ let rec str_of_expr = function
   | Binop (_, e1, o, e2) when (match o with Ind _ -> true | _ -> false) ->
     (str_of_expr e1) ^ " [" ^ (str_of_expr e2) ^ "]"
   | Binop (_, e1, o, e2) -> (str_of_expr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_expr e2)
-  | Assign (_, s, None, None, e) -> s ^ " = " ^ (str_of_expr e)
-  | Assign (_, s, Some f, _, e) -> s ^ "." ^ f ^ " = " ^ (str_of_expr e)
-  | Assign (_, s, _, Some i, e) -> s ^ "[" ^ (str_of_expr i) ^ "] = " ^ (str_of_expr e)
   | Call (_, s, el) -> s ^ "(" ^ (String.concat ", " (List.map str_of_expr el)) ^ ")"
 
 let pos_of_expr = function
@@ -72,7 +69,6 @@ let pos_of_expr = function
   | Id (p, _) -> p
   | Unop (p, _, _) -> p
   | Binop (p, _, _, _) -> p
-  | Assign (p, _, _, _, _) -> p
   | Call (p, _, _) -> p
 
 let rec str_of_sexpr = function
@@ -94,15 +90,13 @@ let rec str_of_sexpr = function
   | (_, SBinop (_, e1, o, e2)) when (match o with Ind _ -> true | _ -> false) ->
     (str_of_sexpr e1) ^ " [" ^ (str_of_sexpr e2) ^ "]"
   | (_, SBinop (_, e1, o, e2)) -> (str_of_sexpr e1) ^ " " ^ (str_of_bop o) ^ " " ^ (str_of_sexpr e2)
-  | (_, SAssign (_, s, None, None, e)) -> s ^ " = " ^ (str_of_sexpr e)
-  | (_, SAssign (_, s, Some f, _, e)) -> s ^ "." ^ f ^ " = " ^ (str_of_sexpr e)
-  | (_, SAssign (_, s, _, Some i, e)) ->
-    s ^ "[" ^ (str_of_sexpr i) ^ "] = " ^ (str_of_sexpr e)
   | (_, SCall (_, s, el)) -> s ^ "(" ^ (String.concat ", " (List.map str_of_sexpr el)) ^ ")"
 
 let rec str_of_stmt = function
   | Block (_, sl) -> "{\n" ^ (String.concat "" (List.map str_of_stmt sl)) ^ "}\n"
-  | Expr (_, e) -> (str_of_expr e) ^ ";\n"
+  | Assign (_, s, None, None, e) -> s ^ " = " ^ (str_of_expr e)
+  | Assign (_, s, Some f, _, e) -> s ^ "." ^ f ^ " = " ^ (str_of_expr e)
+  | Assign (_, s, _, Some i, e) -> s ^ "[" ^ (str_of_expr i) ^ "] = " ^ (str_of_expr e)
   | Break _ -> "break;\n"
   | Continue _ -> "continue;\n"
   | If (_, e, s) -> "if (" ^ (str_of_expr e) ^ ")\n" ^ (str_of_stmt s)
@@ -114,7 +108,7 @@ let rec str_of_stmt = function
 
 let pos_of_stmt = function
   | Block (p, _) -> p
-  | Expr (p, _) -> p
+  | Assign (p, _, _, _, _) -> p
   | Break p -> p
   | Continue p -> p
   | If (p, _, _) -> p
@@ -124,7 +118,10 @@ let pos_of_stmt = function
 
 let rec str_of_sstmt = function
   | SBlock (_, sl) -> "{\n" ^ (String.concat "" (List.map str_of_sstmt sl)) ^ "}\n"
-  | SExpr (_, e) -> (str_of_sexpr e) ^ ";\n"
+  | SAssign (_, s, None, None, e) -> s ^ " = " ^ (str_of_sexpr e)
+  | SAssign (_, s, Some f, _, e) -> s ^ "." ^ f ^ " = " ^ (str_of_sexpr e)
+  | SAssign (_, s, _, Some i, e) ->
+    s ^ "[" ^ (str_of_sexpr i) ^ "] = " ^ (str_of_sexpr e)
   | SBreak _ -> "break;\n"
   | SContinue _ -> "continue;\n"
   | SIf (_, e, s) -> "if (" ^ (str_of_sexpr e) ^ ")\n" ^ (str_of_sstmt s)

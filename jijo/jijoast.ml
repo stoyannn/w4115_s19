@@ -44,12 +44,11 @@ type expr =
   | Id of pos * string
   | Unop of pos * expr * uop
   | Binop of pos * expr * bop * expr
-  | Assign of pos * string * string option * expr option * expr
   | Call of pos * string * expr list
 
 type stmt =
   | Block of pos * stmt list
-  | Expr of pos * expr
+  | Assign of pos * string * string option * expr option * expr
   | Break of pos
   | Continue of pos
   | If of pos * expr * stmt

@@ -73,10 +73,10 @@ and g_unop_t = L.function_type g_val [| g_val |]
 and g_new_t = L.function_type g_val [| g_i8 |]
 and g_new2_t = L.function_type g_val [| g_i8ptr |]
 and g_get_t = L.function_type g_val [| g_val; g_i32 |]
-and g_set_t = L.function_type g_i32 [| g_val; g_i32; g_val |]
-and g_set2_t = L.function_type g_i32 [| g_val; g_val; g_val |]
-and g_print_t = L.function_type g_i32 [| g_val |]
-and g_assert_t = L.function_type g_i32 [| g_val; g_val |]
+and g_set_t = L.function_type g_val [| g_val; g_i32; g_val |]
+and g_set2_t = L.function_type g_val [| g_val; g_val; g_val |]
+and g_print_t = L.function_type g_val [| g_val |]
+and g_assert_t = L.function_type g_val [| g_val; g_val |]
 in
 let g_binop_plus = L.declare_function "_binop_plus" g_binop_t g_mod
 and g_binop_minus = L.declare_function "_binop_minus" g_binop_t g_mod
@@ -254,56 +254,6 @@ let build_sfunc sfunc =
         | A.DotDot _ -> e2'
       in
       (cont'', v)
-    | SAssign (_, s, None, None, e) ->
-      let (cont', e') = build_sexpr cont e
-      in
-      let (cont'', v) =
-        match (get_var cont' s) with
-        | Some x -> (cont', x)
-        | None -> add_var cont' s
-      in
-      ignore (L.build_store e' v cont''.builder);
-      (cont'', e')
-    | SAssign (_, s, Some f, _, e) ->
-      let (cont', e') = build_sexpr cont e
-      in
-      let (cont'', v) =
-        match (get_var cont' s) with
-        | Some x -> (cont', L.build_load x s cont.builder)
-        | None -> (* Semantic analyzer will not allow this, but let's try to handle it *)
-          let (cont'', v') = add_var cont' s
-          in
-          let o = L.build_call g_func_new_composite [| g_obj |]
-            "_func_new_composite_" cont''.builder
-          in
-          ignore (L.build_store o v' cont''.builder);
-          (cont'', v')
-      in
-      let i = get_add_field_id f
-      in
-      ignore (L.build_call g_func_set_element [| v; i; e' |]
-        "_func_set_element_" cont''.builder);
-      (cont'', e')
-    | SAssign (_, s, _, Some i, e) ->
-      let (cont', i') = build_sexpr cont i
-      in
-      let (cont'', e') = build_sexpr cont' e
-      in
-      let (cont''', v) =
-        match (get_var cont'' s) with
-        | Some x -> (cont'', L.build_load x s cont.builder)
-        | None -> (* Semantic analyzer will not allow this, but let's try to handle it *)
-          let (cont''', v') = add_var cont'' s
-          in
-          let o = L.build_call g_func_new_composite [| g_arr |]
-            "_func_new_composite_" cont'''.builder
-          in
-          ignore (L.build_store o v' cont'''.builder);
-          (cont''', v')
-      in
-      ignore (L.build_call g_func_set_value [| v; i'; e' |]
-        "_func_set_value_" cont'''.builder);
-      (cont''', e')
     | SCall (_, "print", [e]) ->
       let (cont', e') = build_sexpr cont e
       in
@@ -334,10 +284,56 @@ let build_sfunc sfunc =
       let _ = List.fold_left build_sstmt cont' sl
       in
       cont
-    | SExpr (_, e) ->
-      let (cont', _) = build_sexpr cont e
+    | SAssign (_, s, None, None, e) ->
+      let (cont', e') = build_sexpr cont e
       in
-      cont'
+      let (cont'', v) =
+        match (get_var cont' s) with
+        | Some x -> (cont', x)
+        | None -> add_var cont' s
+      in
+      ignore (L.build_store e' v cont''.builder);
+      cont''
+    | SAssign (_, s, Some f, _, e) ->
+      let (cont', e') = build_sexpr cont e
+      in
+      let (cont'', v) =
+        match (get_var cont' s) with
+        | Some x -> (cont', L.build_load x s cont.builder)
+        | None -> (* Semantic analyzer will not allow this, but let's try to handle it *)
+          let (cont'', v') = add_var cont' s
+          in
+          let o = L.build_call g_func_new_composite [| g_obj |]
+            "_func_new_composite_" cont''.builder
+          in
+          ignore (L.build_store o v' cont''.builder);
+          (cont'', v')
+      in
+      let i = get_add_field_id f
+      in
+      ignore (L.build_call g_func_set_element [| v; i; e' |]
+        "_func_set_element_" cont''.builder);
+      cont''
+    | SAssign (_, s, _, Some i, e) ->
+      let (cont', i') = build_sexpr cont i
+      in
+      let (cont'', e') = build_sexpr cont' e
+      in
+      let (cont''', v) =
+        match (get_var cont'' s) with
+        | Some x -> (cont'', L.build_load x s cont.builder)
+        | None -> (* Semantic analyzer will not allow this, but let's try to handle it *)
+          let (cont''', v') = add_var cont'' s
+          in
+          let o = L.build_call g_func_new_composite [| g_arr |]
+            "_func_new_composite_" cont'''.builder
+          in
+          ignore (L.build_store o v' cont'''.builder);
+          (cont''', v')
+      in
+      ignore (L.build_call g_func_set_value [| v; i'; e' |]
+        "_func_set_value_" cont'''.builder);
+      cont'''
     | SBreak _ -> cont
     | SContinue _ -> cont
     | SIf (_, e, s) -> cont

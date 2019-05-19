@@ -18,12 +18,11 @@ and sx =
   | SId of pos * string
   | SUnop of pos * sexpr * uop
   | SBinop of pos * sexpr * bop * sexpr
-  | SAssign of pos * string * string option * sexpr option * sexpr
   | SCall of pos * string * sexpr list
 
 type sstmt =
   | SBlock of pos * sstmt list
-  | SExpr of pos * sexpr
+  | SAssign of pos * string * string option * sexpr option * sexpr
   | SBreak of pos
   | SContinue of pos
   | SIf of pos * sexpr * sstmt

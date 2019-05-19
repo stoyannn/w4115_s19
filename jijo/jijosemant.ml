@@ -47,6 +47,18 @@ let g_funtab =
 in
 
 
+  let rec typ_of_id cont pos id =
+    if cont.accessible then
+      None
+    else
+      try StringMap.find id cont.symtab
+      with Not_found ->
+        match cont.parent with
+        | Some p -> typ_of_id p pos id
+        | None -> raise (SemantError (pos, cont.fname,
+          "variable '" ^ id ^ "' may not have been initialized"))
+  in
+
 let is_typ t typ = match t with
   | Some x when x = typ -> true
   | None -> true
@@ -87,18 +99,6 @@ let rec sexpr_of_expr cont expr =
       (c', (f, e') :: sfl)
     in
     List.fold_left add_field (cont, []) fl
-  in
-
-  let rec typ_of_id cont pos id =
-    if cont.accessible then
-      None
-    else
-      try StringMap.find id cont.symtab
-      with Not_found ->
-        match cont.parent with
-        | Some p -> typ_of_id p pos id
-        | None -> raise (SemantError (pos, cont.fname,
-          "variable '" ^ id ^ "' may not have been initialized"))
   in
 
   match expr with
@@ -162,42 +162,6 @@ let rec sexpr_of_expr cont expr =
         "' in expression: " ^ (Jijohelp.str_of_expr x)))
     in
     (cont'', (t', SBinop(p, (t1, e1'), o, (t2, e2'))))
-  | Assign (p, s, None, None, e) ->
-    let (cont', (t', e')) = sexpr_of_expr cont e
-    in
-    let cont'' = {cont' with symtab = StringMap.add s None cont'.symtab}
-    in
-    (cont'', (t', SAssign(p, s, None, None, (t', e'))))
-  | Assign (p, s, Some f, _, e) ->
-    let t = typ_of_id cont p s
-    in
-    if not (is_typ t Object) then
-      raise (SemantError(p, cont.fname, "type '" ^ (Jijohelp.str_of_typ t) ^
-        "' cannot be used as object"))
-    else
-      let (cont', (t', e')) = sexpr_of_expr cont e
-      in
-      let cont'' = {cont' with symtab = StringMap.add s None cont'.symtab}
-      in
-      (cont'', (t', SAssign(p, s, Some f, None, (t', e'))))
-  | Assign (p, s, _, Some i, e) ->
-    let t = typ_of_id cont p s
-    in
-    if not (is_typ t Array) then
-      raise (SemantError(p, cont.fname, "type '" ^ (Jijohelp.str_of_typ t) ^
-        "' cannot be used as array"))
-    else
-      let (cont', (t', i')) = sexpr_of_expr cont i
-      in
-      if not (is_typ t' Number) then
-        raise (SemantError(p, cont.fname, "type '" ^ (Jijohelp.str_of_typ t') ^
-          "' cannot be used as array index"))
-      else
-        let (cont'', (t'', e')) = sexpr_of_expr cont' e
-        in
-        let cont''' = {cont'' with symtab = StringMap.add s None cont''.symtab}
-        in
-        (cont''', (t'', SAssign(p, s, None, Some (t', i'), (t'', e'))))
   | Call (p, f, el) ->
     let func = 
       try StringMap.find f g_bintab
@@ -248,10 +212,42 @@ and sstmt_of_stmt cont stmt =
         {cont with parent = Some cont; symtab = StringMap.empty; accessible = false}
       in
       (cont, SBlock(p, sstmt_list_of_stmt_list cont' sl))
-    | Expr (p, e) ->
-      let (cont', e') = sexpr_of_expr cont e
+    | Assign (p, s, None, None, e) ->
+      let (cont', (t', e')) = sexpr_of_expr cont e
       in
-      (cont', SExpr (p, e'))
+      let cont'' = {cont' with symtab = StringMap.add s None cont'.symtab}
+      in
+      (cont'', SAssign(p, s, None, None, (t', e')))
+    | Assign (p, s, Some f, _, e) ->
+      let t = typ_of_id cont p s
+      in
+      if not (is_typ t Object) then
+        raise (SemantError(p, cont.fname, "type '" ^ (Jijohelp.str_of_typ t) ^
+          "' cannot be used as object"))
+      else
+        let (cont', (t', e')) = sexpr_of_expr cont e
+        in
+        let cont'' = {cont' with symtab = StringMap.add s None cont'.symtab}
+        in
+        (cont'', SAssign(p, s, Some f, None, (t', e')))
+    | Assign (p, s, _, Some i, e) ->
+      let t = typ_of_id cont p s
+      in
+        if not (is_typ t Array) then
+        raise (SemantError(p, cont.fname, "type '" ^ (Jijohelp.str_of_typ t) ^
+          "' cannot be used as array"))
+      else
+        let (cont', (t', i')) = sexpr_of_expr cont i
+        in
+        if not (is_typ t' Number) then
+          raise (SemantError(p, cont.fname, "type '" ^ (Jijohelp.str_of_typ t') ^
+            "' cannot be used as array index"))
+        else
+          let (cont'', (t'', e')) = sexpr_of_expr cont' e
+          in
+          let cont''' = {cont'' with symtab = StringMap.add s None cont''.symtab}
+          in
+          (cont''', SAssign(p, s, None, Some (t', i'), (t'', e')))
     | Break p as x -> 
       if cont.breakable then
         ({cont with finished = true}, SBreak p)
