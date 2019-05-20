@@ -1,0 +1,62 @@
+// Arrays
+//
+
+jijo() = {
+  // creation
+  //
+  a = [];
+  _ = assert(a[?] == 0, "initially empty array");
+  b = [null, true, 1, "string", {}, []];
+  _ = assert(b[?] == 5, "can create and initialize at once");
+  _ = assert(b[0] is null, "arrays are homogeneous");
+  _ = assert(b[1] is true, "arrays are homogeneous");
+  _ = assert(b[2] is 0, "arrays are homogeneous");
+  _ = assert(b[3] is "", "arrays are homogeneous");
+  _ = assert(b[4] is {}, "arrays are homogeneous");
+  _ = assert(b[5] is [], "arrays are homogeneous");
+  b[10] = "arrays are automagically resized when assigning past end";
+  _ = assert(b[?] == 10, "[?] is the largest index that was assigned");
+
+  // access
+  //
+  _ = assert(b[7] == null, "unassigned elements return null");
+  _ = assert(b[100] == null, "elements past the end return null");
+  _ = assert(b[?] == 10, "just accessing past end does not resize");
+  b[13] = a;
+  _ = assert(b[?] == 13, "can have arrays of arrays");
+  a[0] = 5;
+  _ = assert(b[13][0] == 5, "can access inside arrays");
+  a[1] = false;
+  _ = assert(a[?] == 1, "a is resized");
+  _ = assert(b[?] == 13, "the containing array is not");
+  b[13] = null;
+  _ = assert(b[?] == 13, "cannot delete elements, can set to null, but size remains same");
+
+  c = b..compact();
+  _ = assert(c[?] == 6, "can compact arrays to discard null values");
+
+  // references
+  //
+  d = b;
+  d[100] = "resizes both d and b";
+  _ = assert(d[100] == b[100], "arrays are references");
+  _ = assert(b[?] == 100, "changes to d are reflected in b");
+}
+
+compact() = {
+  ret = null;
+  if (this is []) {
+    ret = [];
+    len = this[?];
+    i = 0;
+    while (i <= len) {
+      if (this[i] != null) {
+        j = ret[?];
+        ret[j + 1] = this[i];
+      }
+      i = i + 1;
+    }
+  }
+  return ret;
+}
+
