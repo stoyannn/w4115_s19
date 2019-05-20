@@ -1,0 +1,52 @@
+// Strings
+//
+
+jijo() = {
+  // equality
+  //
+  a = "abcdefghijklmnopqrstuvwxyz";
+  b = a;
+  _ = assert(a == b, "static string reference equality");
+  c = "abcdefghijklmnopqrstuvwxyz";
+  _ = assert(c == b, "static string value equality");
+
+  // strings are immutable
+  //
+  b = "xyz";
+  _ = assert(b != a, "changing one ref does not change the other");
+
+  // concatenation
+  //
+  d = "abcdefghijk";
+  e = d ^ "lmnopqrstuvwxyz";
+  _ = assert(e != a, "dynamic strings are not referentially equal");
+
+  f = "a" ^ "bcdefghijklmnopqrstuvwxyz";
+  _ = assert(f != e, "dynamic strings are not value equal either");
+
+  // char access
+  //
+  g = f[10];
+  _ = assert(g is "", "we can take single-char sub-strings");
+
+  // concat and char access is sufficient to implement other ops (ex. reverse)
+  //
+  h = reverse(f);
+  _ = print(h);
+}
+
+reverse(a) = {
+  if (!(a is "")) {
+    return null;
+  }
+
+  len = a[?];
+  ret = "";
+  while (len > 0) {
+    len = len - 1;
+    ret = ret ^ a[len];
+  }
+
+  return ret;
+}
+

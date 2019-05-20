@@ -1,0 +1,62 @@
+// Objects
+//
+
+jijo() = {
+  // field access
+  //
+  a = {};
+  a.field_1 = "abc";
+  _ = assert(a.field_1 == "abc", "can add fields to objects on the fly");
+  a.field_2 = true;
+  a.field_3 = "string";
+  a.field_1 = a.field_3;
+  _ = assert(a.field_1 == "string", "can overwrite fields and change type");
+  _ = assert(a.nonexistent == null, "accessing a non-existent field returns null");
+  _ = assert(a.field_2 == true, null);
+  a.field_2 = null;
+  _ = assert(a.field_2 == null, "can't delete a field, but can set it to null");
+
+  // manipulation w/ functions
+  //
+  b = {};
+  _ = b..add_address_fields();
+  _ = assert(b.street == "406 E 73rd St", "b modified by ref via func call");
+  _ = assert(b.city == "New York", null);
+  _ = assert(b.state == "NY", null);
+  _ = assert(b.zip == "10021", null);
+  _ = add_apt(b);
+  _ = assert(b.apt == "4R", "can also be passed by ref as explicit args");
+
+  // print
+  //
+  _ = print(a); // note: field names are subbed w/ integer indexes
+  _ = print(b);
+
+  // composition
+  //
+  b.a = a;
+  _ = assert(b.a is {}, "objects can contain references to other objects");
+  _ = assert(b.a.field_3 == "string", "child objects are accessible via parent");
+  a.field_3 = "abc";
+  _ = assert(a.field_3 == "abc", null);
+  _ = assert(b.a.field_3 == "abc", "changes in child visible via parent");
+  _ = assert(a.field_3 == b.a.field_3, "it is the same field, really");
+}
+
+add_address_fields() = {
+  // 'this' here is the value on which this function was called
+  //
+  if (this is {}) {
+    this.street = "406 E 73rd St";
+    this.city = "New York";
+    this.state = "NY";
+    this.zip = "10021";
+  }
+}
+
+add_apt(b) = {
+  if (b is {}) {
+    b.apt = "4R";
+  }
+}
+
