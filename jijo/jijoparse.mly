@@ -61,9 +61,9 @@
 %type <Jijoast.program> program
 
 %right ASSIGN
-%right IS
 %left OR
 %left AND
+%right IS
 %left EQ NEQ
 %left LT LEQ GT GEQ
 %left CONCAT

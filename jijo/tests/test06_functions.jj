@@ -1,0 +1,68 @@
+// Functions
+//
+
+jijo() = {
+  // functions can return no value
+  //
+  v = ret_void();
+  _ = assert(! (v is null || v is true || v is 0 || v is "" || v is {} || v is []),
+        "no return value (void is not any type");
+
+  // or they can return arbitrary values
+  //
+  v = ret_arr();
+  _ = assert(v[0] is null && v[1] is true && v[2] is 0 && v[3] is "" && v[4] is {}
+        && v[5] is [], "any return value");
+
+  // primitives passed by value
+  //
+  v = 123.45;
+  _ = inc_by_1(v);
+  _ = assert(v == 123.45, "primitives passed by value");
+
+  // objects (and arrays) passed by reference
+  //
+  v = { field: 9.5 };
+  _ = inc_by_1(v);
+  _ = assert(v.field == 10.5, "objects passed by reference");
+
+  // can call functions on any value implicitly ('this' in func is set to that value)
+  //
+  v = { field: 3.5 };
+  v = v..inc_by(5);
+  _ = assert(v.field == 8.5, "call function on object");
+  v = 90..inc_by(9.9);
+  _ = assert(v == 99.9, "call function on primitive");
+  v = [0.0, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9];
+  v = v..get(5);
+  _ = assert(v == 5.5, "call function on array");
+}
+
+ret_void() = {
+}
+
+ret_arr() = {
+  return [null, false, 3.14, "string", {}, []];
+}
+
+inc_by_1(v) = {
+  if (v is 0) {
+    v = v + 1;
+  } else if (v is {}) {
+    v.field = v.field + 1;
+  }
+}
+
+inc_by(i) = {
+  if (this is 0) {
+    return this + i;
+  } else if (this is {}) {
+    this.field = this.field + i;
+    return this;
+  }
+}
+
+get(i) = {
+  return this[i];
+}
+
