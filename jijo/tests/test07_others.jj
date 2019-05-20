@@ -1,0 +1,59 @@
+// Others
+//
+
+jijo() = {
+  // supports line comments
+  /*
+   * supports multi-line comments too!
+   */
+
+  // assignment is a statement and statement can't be just an expression
+  //
+  _ = print(3); // just 'print(3);' is error
+
+  // string literals are pulled as unique global constants
+  //
+  a = "abc";
+  b = "abc";
+  _ = assert(a == b, "same string literals are always equal");
+  c = "a" ^ "bc";
+  _ = assert(c != b, "but dynamic strings are never equal");
+
+  // arrays are actually maps keyed by number but the number is cast to int
+  //
+  a = [];
+  a[0] = "zero";
+  a[1.5] = 1.5;
+  a[2.1] = true;
+  a[2.2] = {};
+  _ = assert(a[1] == 1.5, "1.5 truncated to 1");
+  _ = assert(a[2] is {}, "2.1 same as 2.2");
+
+  // accessing array elements that do not exist returns null
+  //
+  _ = assert(a[10] == null, "pretty permissive");
+
+
+  // objects are also maps keyed by number, print skips field names and shows keys
+  //
+  v = {
+    f1: null,
+    f2: false,
+    f3: 12.3,
+    f4: "string"
+  };
+  _ = print(v);
+
+  // the keys used for field names are globally unique per field name
+  //
+  o = {
+    f0: "zero",
+    f3: null // will have same number key as f3 in v
+  };
+  _ = print(o);
+
+  // accessing object fields that do not exist returns null
+  //
+  _ = assert(o.no_such_field == null, "pretty permissive");
+}
+
