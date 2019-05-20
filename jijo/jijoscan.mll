@@ -77,7 +77,7 @@ rule token = parse
   | (digit)+ ('.' (digit)+)? as num { NUMLIT ((pos lexbuf), float_of_string num) }
   | '"'                             { token_string (Buffer.create 16) lexbuf }
 
-  | (letter) (letter|digit|'_')* as id { ID ((pos lexbuf), id) }
+  | (letter|'_') (letter|digit|'_')* as id { ID ((pos lexbuf), id) }
 
   | eof      { EOF (pos lexbuf) }
   | _ as chr { raise (SyntaxError (pos lexbuf, "Illegal character: " ^ Char.escaped chr)) }

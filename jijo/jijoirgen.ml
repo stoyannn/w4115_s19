@@ -188,9 +188,9 @@ let build_sfunc sfunc =
           "_func_set_element_" cont.builder);
         c'
       in
-      let cont' = List.fold_left add_field cont fl
+      let _ = List.fold_left add_field cont fl
       in
-      (cont', o)
+      (cont, o)
     | SArrlit (_, el) ->
       let o = L.build_call g_func_new_composite [| g_arr |]
         "_func_new_composite_" cont.builder
@@ -204,9 +204,9 @@ let build_sfunc sfunc =
           "_func_set_element_" cont.builder);
         (c', (i + 1))
       in
-      let (cont', _) = List.fold_left add_element (cont, 0) el
+      let (_, _) = List.fold_left add_element (cont, 0) el
       in
-      (cont', o)
+      (cont, o)
     | SId (_, s) -> 
       let v = match cont.this with
       | Some x ->
@@ -230,7 +230,7 @@ let build_sfunc sfunc =
         | A.Not _ -> L.build_call g_unop_not arg "_unop_not_" bld
         | A.Len _ -> L.build_call g_unop_len arg "_unop_len_" bld
       in
-      (cont', v)
+      (cont, v)
     | SBinop (_, e1, op, e2) ->
       let (cont', e1') = build_sexpr cont e1
       in
@@ -261,17 +261,17 @@ let build_sfunc sfunc =
         | A.Dot _ -> e2'
         | A.DotDot _ -> e2'
       in
-      (cont'', v)
+      (cont, v)
     | SCall (_, "print", [e]) ->
       let (cont', e') = build_sexpr cont e
       in
-      (cont', L.build_call g_func_print [| e' |] "_func_print_" cont'.builder)
+      (cont, L.build_call g_func_print [| e' |] "_func_print_" cont'.builder)
     | SCall (_, "assert", [e1; e2]) ->
       let (cont', e1') = build_sexpr cont e1
       in
       let (cont'', e2') = build_sexpr cont' e2
       in
-      (cont'', L.build_call g_func_assert [| e1'; e2' |] "_func_assert_" cont''.builder)
+      (cont, L.build_call g_func_assert [| e1'; e2' |] "_func_assert_" cont''.builder)
     | SCall (_, f, el) ->
       let add_arg (c, al) a =
         let (cont', a') = build_sexpr c a
@@ -287,7 +287,7 @@ let build_sfunc sfunc =
       in
       let (cont', args) = List.fold_left add_arg (cont, []) el
       in
-      (cont', L.build_call fd (Array.of_list (thisarg :: args)) (f ^ "_") cont'.builder)
+      (cont, L.build_call fd (Array.of_list (thisarg :: args)) (f ^ "_") cont'.builder)
   in
 
   let add_terminal cont inst =

@@ -1,0 +1,71 @@
+// Types
+//
+
+jijo() = {
+  // primitives: null, boolean, number
+  //
+  v = null;
+  _ = assert(v is null, "type");
+  _ = assert(v == null, "value");
+
+  v = true;
+  _ = assert(v is true, "type");
+  _ = assert(v == true, "value");
+  _ = assert(v != false, "value");
+
+  v = 7;
+  _ = assert(v is 0, "type");
+  _ = assert(v == 7, "value");
+  _ = assert(v != 5, "value");
+
+  // string
+  //
+  v = "string";
+  _ = assert(v is "", "type");
+  _ = assert(v == "string", "value");
+  _ = assert(v[?] == 6, "length");
+
+  // object of name: value mappings w/ nesting
+  //
+  v = {
+    f_null: null,
+    f_bool: false,
+    f_num: 3,
+    f_str: "field",
+    f_obj: {
+      one: 1,
+      two: "two"
+    },
+    f_arr: [
+      null, true, 5, "array", { obj: "element" }, []
+    ]
+  };
+  _ = assert(v is {}, "type");
+  _ = assert(v != 17, "value");
+  _ = assert(v != {}, "value");
+  _ = assert(v.f_null == null, "sub-value");
+  _ = assert(v.f_num is 0, "sub-type");
+  _ = assert(v.f_str[?] == 5, "sub-value");
+  _ = assert(v.f_obj is {}, "sub-type");
+  _ = assert(v.f_obj != {}, "sub-value");
+  _ = assert(v.f_obj.two == "two", "sub-value");
+
+  // heterogeneous arrays w/ nesting
+  //
+  v = [
+    null, false, 9, "string", { obj: "abc" }, [1, false, null]
+  ];
+  _ = assert(v is [], "type");
+  _ = assert(v[?] == 5, "length");
+  _ = assert(v[0] == null, "sub-type");
+  _ = assert(v[3] == "string", "sub-value");
+  _ = assert(v[3] is "", "sub-type");
+  _ = assert(v[4] is {} , "sub-type");
+  _ = assert(v[4].obj is "", "sub-type");
+  _ = assert(v[4].obj == "abc", "sub-value");
+  _ = assert(v[5] is [], "sub-type");
+  _ = assert(v[5][0] == 1, "sub-value");
+  _ = assert(v[5][1] is true, "sub-type");
+  _ = assert(v[5][2] == null, "sub-value");
+}
+

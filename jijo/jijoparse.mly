@@ -69,9 +69,7 @@
 %left CONCAT
 %left PLUS MINUS
 %left MULT DIV
-%left DOT
-%left DOTDOT
-%left LBRACK
+%left DOT DOTDOT LBRACK
 %nonassoc UMINUS
 %right EXCL
 
