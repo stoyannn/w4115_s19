@@ -195,6 +195,15 @@ struct _value _binop_is(struct _value op1, struct _value op2)
   return (struct _value) {TYP_BOOLEAN, op1.type == op2.type ? TRUE : FALSE};
 }
 
+unsigned char _func_is_true(struct _value val)
+{
+  if (val.type != TYP_BOOLEAN) {
+    _fatal(ERR_TYPE, "wrong type for condition: %s", _type_str(val.type));
+  }
+  
+  return val.value != FALSE ? 1 : 0;
+}
+
 
 /*
  * String, object.field and array[element] access
@@ -389,7 +398,7 @@ struct _value _binop_concat(struct _value op1, struct _value op2)
 
 
 /*
- * Built-ins: print, main
+ * Built-ins: print, assert, main
  */
 
 struct _value _func_print_composite(struct _value);

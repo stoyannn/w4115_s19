@@ -16,6 +16,8 @@ type context = {
   builder: L.llbuilder;
   vartab: L.llvalue StringMap.t;
   this: L.llvalue option;
+  while_bb: L.llbasicblock option;
+  while_done: L.llvalue option;
 }
 
 
@@ -25,6 +27,7 @@ let llmodule_of_sprogram sprogram =
 let g_cont = L.global_context ()
 in
 let g_mod = L.create_module g_cont "jijo"
+and g_i1 = L.i1_type g_cont
 and g_i8 = L.i8_type g_cont
 and g_i32 = L.i32_type g_cont
 and g_dbl = L.double_type g_cont
@@ -54,7 +57,10 @@ let get_add_field_id f =
     Hashtbl.add g_idtab f i'; i'
 in
 
-let g_void = L.const_int g_i8 0
+let g_i1_0 = L.const_int g_i1 0
+and g_i1_1 = L.const_int g_i1 1
+and g_i8_0 = L.const_int g_i8 0
+and g_void = L.const_int g_i8 0
 and g_null = L.const_int g_i8 1
 and g_bool = L.const_int g_i8 2
 and g_num = L.const_int g_i8 3
@@ -65,11 +71,11 @@ let g_void_z = L.const_struct g_cont [| g_void; L.const_float g_dbl 0.0 |]
 and g_null_z = L.const_struct g_cont [| g_null; L.const_float g_dbl 0.0 |]
 and g_bool_t = L.const_struct g_cont [| g_bool; L.const_float g_dbl 1.0 |]
 and g_bool_f = L.const_struct g_cont [| g_bool; L.const_float g_dbl 0.0 |]
-and g_num_z = L.const_struct g_cont [| g_num; L.const_float g_dbl 0.0 |]
 in
 
 let g_binop_t = L.function_type g_val [| g_val; g_val |]
 and g_unop_t = L.function_type g_val [| g_val |]
+and g_check_t = L.function_type g_i8 [| g_val |]
 and g_new_t = L.function_type g_val [| g_i8 |]
 and g_new2_t = L.function_type g_val [| g_i8ptr |]
 and g_get_t = L.function_type g_val [| g_val; g_i32 |]
@@ -93,6 +99,7 @@ and g_binop_and = L.declare_function "_binop_and" g_binop_t g_mod
 and g_binop_or = L.declare_function "_binop_or" g_binop_t g_mod
 and g_unop_not = L.declare_function "_unop_not" g_unop_t g_mod
 and g_binop_is = L.declare_function "_binop_is" g_binop_t g_mod
+and g_func_is_true = L.declare_function "_func_is_true" g_check_t g_mod
 and g_func_new_composite = L.declare_function "_func_new_composite" g_new_t g_mod
 and g_func_new_string = L.declare_function "_func_new_string" g_new2_t g_mod
 and g_func_get_element = L.declare_function "_func_get_element" g_get_t g_mod
@@ -131,6 +138,8 @@ let build_sfunc sfunc =
     builder = builder;
     vartab = vartab;
     this = None;
+    while_bb = None;
+    while_done = None;
   }
   in
 
@@ -207,8 +216,7 @@ let build_sfunc sfunc =
       | None -> (
         match (get_var cont s) with
         | Some x -> L.build_load x s cont.builder
-        | None -> g_void_z
-      )
+        | None -> g_void_z)
       in
       (cont, v)
     | SUnop (_, e, op) ->
@@ -293,9 +301,7 @@ let build_sfunc sfunc =
     | SBlock (_, sl) ->
       let cont' = {cont with parent = Some cont; vartab = StringMap.empty}
       in
-      let _ = List.fold_left build_sstmt cont' sl
-      in
-      cont
+      List.fold_left build_sstmt cont' sl
     | SAssign (_, s, None, None, e) ->
       let (cont', e') = build_sexpr cont e
       in
@@ -346,31 +352,102 @@ let build_sfunc sfunc =
       ignore (L.build_call g_func_set_value [| v; i'; e' |]
         "_func_set_value_" cont'''.builder);
       cont'''
-    | SBreak _ -> cont
-    | SContinue _ -> cont
-    | SIf (_, e, s) -> cont
-    | SIfElse (_, e, s1, s2) -> cont
-    | SWhile (_, e, s) -> cont
-(*
+    | SBreak _ -> (
+      match (cont.while_bb, cont.while_done) with
+      | (Some b, Some v) ->
+        ignore (L.build_store g_i1_1 v cont.builder);
+        ignore (L.build_br b cont.builder);
+        cont
+      | (_, _) -> cont)
+    | SContinue _ -> (
+      match cont.while_bb with
+      | Some b ->
+        ignore (L.build_br b cont.builder);
+        cont
+      | None -> cont)
+    | SIf (_, e, s) ->
+      let (cont', e') = build_sexpr cont e
+      in
+      let e'' = L.build_call g_func_is_true [| e' |] "_func_is_true_" cont'.builder
+      in
+      let e''' = L.build_icmp Icmp.Ne e'' g_i8_0 "if_cond" cont'.builder
+      in
+      let then_bb = L.append_block g_cont "if_then" func
+      in
+      let cont'' = build_sstmt {cont' with builder = L.builder_at_end g_cont then_bb} s
+      in
+      let end_bb = L.append_block g_cont "if_end" func
+      in
+      let build_br_end = L.build_br end_bb
+      in
+      add_terminal cont'' build_br_end;
+      (*
+      add_terminal {cont' with builder = L.builder_at_end g_cont then_bb} build_br_end;
+      *)
+      ignore (L.build_cond_br e''' then_bb end_bb cont'.builder);
+      {cont' with builder = L.builder_at_end g_cont end_bb}
+    | SIfElse (_, e, s1, s2) ->
+      let (cont', e') = build_sexpr cont e
+      in
+      let e'' = L.build_call g_func_is_true [| e' |] "_func_is_true_" cont'.builder
+      in
+      let e''' = L.build_icmp Icmp.Ne e'' g_i8_0 "if_cond" cont'.builder
+      in
+      let then_bb = L.append_block g_cont "if_then" func
+      in
+      let cont'' = build_sstmt {cont' with builder = L.builder_at_end g_cont then_bb} s1
+      in
+      let else_bb = L.append_block g_cont "if_else" func
+      in
+      let cont''' = build_sstmt {cont' with builder = L.builder_at_end g_cont else_bb} s2
+      in
+      let end_bb = L.append_block g_cont "if_end" func
+      in
+      let build_br_end = L.build_br end_bb
+      in
+      add_terminal cont'' build_br_end;
+      add_terminal cont''' build_br_end;
+      (*
+      add_terminal {cont' with builder = L.builder_at_end g_cont then_bb} build_br_end;
+      add_terminal {cont' with builder = L.builder_at_end g_cont else_bb} build_br_end;
+      *)
+      ignore (L.build_cond_br e''' then_bb else_bb cont'.builder);
+      {cont' with builder = L.builder_at_end g_cont end_bb}
+    | SWhile (_, e, s) ->
+      let e2 = L.build_alloca g_i1 "while_done" cont.builder
+      in
+      ignore (L.build_store g_i1_0 e2 cont.builder);
       let while_bb = L.append_block g_cont "while" func
       in
       let build_br_while = L.build_br while_bb
       in
       ignore (build_br_while cont.builder);
-
       let while_builder = L.builder_at_end g_cont while_bb
       in
-      let bool_val = build_expr ({cont with builder = while_builder}) e
+      let (cont', e') = build_sexpr {cont with builder = while_builder} e
+      in
+      let e'' = L.build_call g_func_is_true [| e' |] "_func_is_true_" cont'.builder
+      in
+      let e''' = L.build_icmp Icmp.Ne e'' g_i8_0 "while_cond" cont'.builder
+      in
+      let done_bb = L.append_block g_cont "while_done" func
+      in
+      let done_builder = L.builder_at_end g_cont done_bb
+      in
+      let e2' = L.build_load e2 "while_done" cont'.builder
       in
       let body_bb = L.append_block g_cont "while_body" func
       in
-      add_terminal (build_stmt (L.builder_at_end g_cont body_bb) body) build_br_while;
-
+      add_terminal (build_sstmt
+        {cont' with
+          builder = L.builder_at_end g_cont body_bb;
+          while_bb = Some while_bb;
+          while_done = Some e2} s) build_br_while;
       let end_bb = L.append_block g_cont "while_end" func
       in
-      ignore (L.build_cond_br bool_val body_bb end_bb while_builder);
-      L.builder_at_end context end_bb
-*)
+      ignore (L.build_cond_br e''' done_bb end_bb while_builder);
+      ignore (L.build_cond_br e2' end_bb body_bb done_builder);
+      {cont' with builder = L.builder_at_end g_cont end_bb}
     | SReturn (_, Some e) ->
       let (cont', v) = build_sexpr cont e
       in
