@@ -1,0 +1,91 @@
+// Control statements
+//
+
+jijo() = {
+  // if can be nested
+  //
+  a = 5;
+  grtr2 = false;
+  if (a > 2) {
+    grtr2 = true;
+  }
+  _ = assert(grtr2, "if statement");
+
+  grtr2less5 = false;
+  if (a > 2) {
+    if (a < 5) {
+      grtr2less5 = true;
+    }
+  }
+  _ = assert(! grtr2less5, "nested if statement");
+
+  // if-else can be nested and chained
+  //
+  grtr2 = null;
+  if (a > 2) {
+    grtr2 = true;
+  } else {
+    grtr2 = false;
+  }
+  _ = assert(grtr2, "if-else statement");
+
+  str = null;
+  if (a == 0) {
+    str = "zero";
+  } else if (a == 1) {
+    str = "one";
+  } else if (a == 2) {
+    str = "two";
+  } else if (a == 3) {
+    str = "three";
+  } else {
+    str = "other";
+  }
+  _ = assert(str == "other", "chained if-else statement");
+
+  a = 5;
+  b = 12.5;
+  if (a != b) {
+    if (a < b) {
+      str = "a < b";
+    } else {
+      str = "a > b";
+    }
+  } else {
+    str = "same";
+  }
+  _ = assert(str == "a < b", "nested if-else statement");
+
+  // while can be continued and broken
+  //
+  countdown = 10;
+  while (countdown >= 0) {
+    _ = print(countdown);
+    _ = print("\n");
+    countdown = countdown - 1;
+  }
+
+  till3 = 10.5;
+  while (till3 >= 0) {
+    if (till3 <= 3) {
+      break;
+    }
+    _ = print(till3);
+    _ = print("\n");
+    till3 = till3 - 1;
+  }
+
+  till3skip7 = 14.7;
+  while (till3skip7 >= 0) {
+    if (till3skip7 >= 7 && till3skip7 < 8) {
+      till3skip7 = till3skip7 - 1;
+      continue;
+    } else if (till3skip7 <= 3) {
+      break;
+    }
+    _ = print(till3skip7);
+    _ = print("\n");
+    till3skip7 = till3skip7 - 1;
+  }
+}
+

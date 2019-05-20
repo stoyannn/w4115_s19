@@ -17,6 +17,9 @@ jijo() = {
   _ = assert(v is 0, "type");
   _ = assert(v == 7, "value");
   _ = assert(v != 5, "value");
+  v = 13.7;
+  _ = assert(v is 0, "type");
+  _ = assert(v == 13.7, "value");
 
   // string
   //
