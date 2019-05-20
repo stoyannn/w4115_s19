@@ -287,7 +287,8 @@ let build_sfunc sfunc =
       in
       let (cont', args) = List.fold_left add_arg (cont, []) el
       in
-      (cont, L.build_call fd (Array.of_list (thisarg :: args)) (f ^ "_") cont'.builder)
+      (cont, L.build_call fd (Array.of_list (thisarg :: (List.rev args)))
+        (f ^ "_") cont'.builder)
   in
 
   let add_terminal cont inst =

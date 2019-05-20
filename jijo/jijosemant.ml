@@ -48,7 +48,7 @@ in
 
 
   let rec typ_of_id cont pos id =
-    if cont.accessible then
+    if cont.accessible || id = "this" then
       None
     else
       try StringMap.find id cont.symtab

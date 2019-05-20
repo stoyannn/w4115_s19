@@ -249,14 +249,12 @@ struct _element *_func_find_id(struct _composite *comp_ptr, int id)
 
 struct _value _func_get_element(struct _value comp, int id)
 {
-  if (comp.type != TYP_OBJECT && comp.type != TYP_ARRAY) {
-    _fatal(ERR_TYPE, "wrong type for composite: %s", _type_str(comp.type));
-  }
-
-  struct _composite *comp_ptr = *((struct _composite **) &(comp.value));
-  struct _element *elem_ptr = _func_find_id(comp_ptr, id);
-  if (elem_ptr != NULL) {
-    return elem_ptr->value;
+  if (comp.type == TYP_OBJECT || comp.type == TYP_ARRAY) {
+    struct _composite *comp_ptr = *((struct _composite **) &(comp.value));
+    struct _element *elem_ptr = _func_find_id(comp_ptr, id);
+    if (elem_ptr != NULL) {
+      return elem_ptr->value;
+    }
   }
 
   struct _value ret;

@@ -1,0 +1,89 @@
+// Intro
+//
+
+jijo() = {
+  // types
+  //
+  v_null = null;
+  v_bool = true;
+  v_num = 7;
+  v_str = "string";
+  v_obj = {
+    f1: null,
+    f2: true,
+    f3: 3,
+    f4: "field 4",
+    f5: { one: 1, two: "two" },
+    f6: [1, 2, "three", false]
+  };
+  v_arr = [1, 2, false, "string", null, v_obj];
+
+  // operators
+  //
+  _ = assert(v_num is 0, "is : type comparison");
+  _ = assert(v_str[?] == 6, "[?] : string length");
+  _ = assert(v_arr[?] == 5, "[?] : last set index in array");
+  _ = assert(v_obj.f2, ". : object member access");
+  _ = assert(v_obj..get_f4() is "", ".. : function call on value");
+  _ = assert(v_arr[3] is "", "[i] : array element access");
+  _ = assert(v_bool == true, "== : value eq comparison (also >, >=, <, <= for numbers)");
+  _ = assert(v_bool != v_str, "!= : value neq comparison");
+  _ = assert(v_num + v_obj.f3 == 10, "+ : addition (also -)"); 
+  _ = assert(v_num / v_obj.f3 > 2, "/ : division (also *)"); 
+  _ = assert(v_bool &&  v_obj.f2, "&& : and"); 
+  _ = assert(v_bool || false, "|| : or"); 
+  _ = assert(! false, "! : not"); 
+
+  // control statements: if, if-else, and while w/ break
+  //
+  a = 10;
+  while (a >= 0) {
+    a = a - 1;
+    if (a == 7) {
+      continue;
+    } else if (a == 3) {
+      break;
+    }
+    _ = print(a);
+    _ = print("\n");
+  } 
+ 
+  // function calls
+  //
+  a = 10;
+  _ = assert(inc_by_1(a) == 11, "function call");
+  _ = assert(a == 10, "primitives are passed by value");
+  _ = assert(v_obj..get_f4() == "field 4", "func call on value (this=v_obj in get_f4())");
+  _ = assert(42..get_f4() == null, "func call on primitive");
+  _ = set_f3_to_7(v_obj);
+  _ = assert(v_obj.f3 == 7, "objects are passed by reference");
+  _ = set_index(v_arr, 2, null);
+  _ = assert(v_arr[2] == null, "as are arrays");
+
+  // built-ins: print and assert w/ all types
+  //
+  _ = print(v_str);
+  _ = print("\n");
+  _ = print(v_obj);
+  _ = print("\n");
+  _ = print(v_arr);
+  _ = print("\n");
+  // assert was shown above
+}
+
+inc_by_1(a) = {
+  return a + 1;
+}
+
+get_f4() = {
+  return this.f4;
+}
+
+set_f3_to_7(a) = {
+  a.f3 = 7;
+}
+
+set_index(a, i, v) = {
+  a[i] = v;
+}
+
