@@ -14,12 +14,5 @@ find ./tests/*.jj -exec sh -c 'echo Compiling: `dirname "$0"`/`basename "$0" .jj
 find ./tests/*.ll -exec sh -c 'echo Linking: `dirname "$0"`/`basename "$0" .ll`; llvm-link $0 ./jijoruntime.ll -o `dirname "$0"`/`basename "$0" .ll`.native' '{}' \;
 find ./tests/*.native -exec chmod u+x {} \;
 
-./tests/test00_intro.native 1>/dev/null
-./tests/test01_types.native 1>/dev/null
-./tests/test02_strings.native 1>/dev/null
-./tests/test03_objects.native 1>/dev/null
-./tests/test04_arrays.native 1>/dev/null
-./tests/test05_control.native 1>/dev/null
-./tests/test06_functions.native 1>/dev/null
-./tests/test07_others.native 1>/dev/null
+find ./tests/*.native -exec sh -c 'echo Running: `dirname "$0"`/`basename "$0" .native`; $0 1>/dev/null' '{}' \;
 
